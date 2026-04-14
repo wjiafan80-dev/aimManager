@@ -278,13 +278,15 @@ textarea.input { resize: vertical; }
 
 /* Saving indicator */
 .saving-bar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-  height: 3px; background: var(--primary);
-  animation: saving-slide 1.2s ease-in-out infinite;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary) 0%, #a78bfa 50%, var(--primary) 100%);
+  background-size: 200% 100%;
+  animation: saving-shimmer 1.2s linear infinite;
 }
-@keyframes saving-slide {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+@keyframes saving-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 .spinner-sm {
   width: 14px; height: 14px;
