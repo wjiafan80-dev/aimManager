@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import Modal from '../components/common/Modal.jsx';
 import { normTools, isExpired, toolUserCount, toolMonthlyNTD, personMonthlyNTD } from '../utils/calc.js';
@@ -158,9 +158,27 @@ export default function Personnel({ autoAction }) {
   const [batchSelected, setBatchSelected] = useState(new Set());
   const [renameCenterModal, setRenameCenterModal] = useState(null);
   const [renameCenterVal, setRenameCenterVal]     = useState('');
+  const [assignModal, setAssignModal]             = useState(false);
+  const [assignDeptId, setAssignDeptId]           = useState('');
+  const [assignPersonId, setAssignPersonId]       = useState('');
 
   if (!data) return null;
   const { departments, tools, settings } = data;
+
+  useEffect(() => {
+    if (!data) return;
+    if (autoAction === 'new-person') {
+      const firstDept = data.departments[0];
+      if (firstDept) setPersonModal({ person: null, deptId: firstDept.id });
+    } else if (autoAction === 'batch-assign') {
+      setBatchModal(true);
+    } else if (autoAction === 'assign') {
+      const firstDept = data.departments[0];
+      setAssignDeptId(firstDept?.id || '');
+      setAssignPersonId('');
+      setAssignModal(true);
+    }
+  }, [autoAction]);
   const usd = settings.usd_to_ntd;
 
   // Group by center
@@ -457,6 +475,37 @@ export default function Personnel({ autoAction }) {
             {removedPeople.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--muted)' }}>無移除人員</td></tr>}
           </tbody>
         </table>
+      </Modal>
+
+      {/* Assign Modal */}
+      <Modal show={assignModal} onClose={() => setAssignModal(false)} title="指派授權" size="sm"
+        footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="btn btn-ghost" onClick={() => setAssignModal(false)}>取消</button>
+          <button className="btn btn-primary" onClick={() => {
+            const dept = departments.find(d => d.id === assignDeptId);
+            const person = (dept?.people || []).find(p => p.id === assignPersonId);
+            if (dept && person) { setAssignModal(false); openEditPerson(dept, person); }
+          }} disabled={!assignPersonId}>開始指派</button>
+        </div>}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p style={{ color: 'var(--muted)', fontSize: 13, margin: 0 }}>選擇人員後可編輯其 AI 工具授權</p>
+          <div>
+            <label className="label">所屬單位</label>
+            <select className="input" value={assignDeptId} onChange={e => { setAssignDeptId(e.target.value); setAssignPersonId(''); }}>
+              {departments.map(d => <option key={d.id} value={d.id}>{d.center ? `${d.center} · ` : ''}{d.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">人員</label>
+            <select className="input" value={assignPersonId} onChange={e => setAssignPersonId(e.target.value)}>
+              <option value="">— 選擇人員 —</option>
+              {(departments.find(d => d.id === assignDeptId)?.people || [])
+                .filter(p => !p.removed)
+                .map(p => <option key={p.id} value={p.id}>{p.name}{p.empId ? ` (${p.empId})` : ''}</option>)}
+            </select>
+          </div>
+        </div>
       </Modal>
 
       {/* Batch Assign Modal */}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
 import { useApp } from '../context/AppContext.jsx';
@@ -14,7 +14,7 @@ const COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec
 const EMPTY_TOOL = { name: '', plan: '', currency: 'USD', monthly: '', annual: '', color: '#6366f1', seats: '', notes: '' };
 const EMPTY_LOG  = { month: ym(), delta: '', notes: '' };
 
-export default function Tools() {
+export default function Tools({ autoAction }) {
   const { data, isAdmin, saveTool, deleteTool, saveLog, deleteLog } = useApp();
   const [toolModal, setToolModal] = useState(null); // null | 'new' | tool object
   const [logModal, setLogModal]   = useState(null); // null | { toolId } | log object
@@ -25,6 +25,13 @@ export default function Tools() {
   if (!data) return null;
   const { tools, departments, log } = data;
   const usd = data.settings.usd_to_ntd;
+
+  useEffect(() => {
+    if (autoAction === 'new-tool') {
+      setForm({ ...EMPTY_TOOL, color: COLORS[tools.length % COLORS.length] });
+      setToolModal('new');
+    }
+  }, [autoAction]);
 
   function openNew() {
     setForm({ ...EMPTY_TOOL, color: COLORS[tools.length % COLORS.length] });
