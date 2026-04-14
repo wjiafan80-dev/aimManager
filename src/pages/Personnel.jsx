@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import Modal from '../components/common/Modal.jsx';
+import SaveBtn from '../components/common/SaveBtn.jsx';
 import { normTools, isExpired, toolUserCount, toolMonthlyNTD, personMonthlyNTD } from '../utils/calc.js';
 import { ntd, toolName, uid } from '../utils/format.js';
 import { ym, ymAdd12, today } from '../utils/date.js';
@@ -136,7 +137,7 @@ function PersonModal({ person, deptId, departments, tools, usd, onClose, onSave 
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 8 }}>
         <button className="btn btn-ghost" onClick={onClose}>取消</button>
-        <button className="btn btn-primary" onClick={handleSave}>儲存</button>
+        <SaveBtn onClick={handleSave} />
       </div>
     </div>
   );
@@ -423,7 +424,7 @@ export default function Personnel({ autoAction }) {
       <Modal show={!!deptModal} onClose={() => setDeptModal(null)} title={deptModal === 'new' ? '新增單位' : '編輯單位'} size="sm"
         footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button className="btn btn-ghost" onClick={() => setDeptModal(null)}>取消</button>
-          <button className="btn btn-primary" onClick={handleSaveDept}>儲存</button>
+          <SaveBtn onClick={handleSaveDept} />
         </div>}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -445,7 +446,7 @@ export default function Personnel({ autoAction }) {
       <Modal show={!!renameCenterModal} onClose={() => setRenameCenterModal(null)} title="重命名中心" size="sm"
         footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button className="btn btn-ghost" onClick={() => setRenameCenterModal(null)}>取消</button>
-          <button className="btn btn-primary" onClick={handleRenameCenter}>儲存</button>
+          <SaveBtn onClick={handleRenameCenter} />
         </div>}
       >
         <div>
@@ -513,7 +514,7 @@ export default function Personnel({ autoAction }) {
         footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>已選 {batchSelected.size} 人</span>
           <button className="btn btn-ghost" onClick={() => setBatchModal(false)}>取消</button>
-          <button className="btn btn-primary" onClick={handleBatchAssign} disabled={!batchForm.toolId || batchSelected.size === 0}>指派</button>
+          <SaveBtn onClick={handleBatchAssign} disabled={!batchForm.toolId || batchSelected.size === 0}>指派</SaveBtn>
         </div>}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

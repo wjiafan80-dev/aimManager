@@ -276,6 +276,26 @@ textarea.input { resize: vertical; }
   animation: spin 0.8s linear infinite;
 }
 
+/* Saving indicator */
+.saving-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  height: 3px; background: var(--primary);
+  animation: saving-slide 1.2s ease-in-out infinite;
+}
+@keyframes saving-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.spinner-sm {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
 /* Quick Actions */
 .quick-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 .quick-btn {

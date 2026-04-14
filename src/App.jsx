@@ -12,7 +12,7 @@ import Maturity from './pages/Maturity.jsx';
 import Settings from './pages/Settings.jsx';
 
 export default function App() {
-  const { data, loading } = useApp();
+  const { data, loading, saving } = useApp();
   const [page, setPage]             = useState('dashboard');
   const [sideCollapsed, setSideCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen]       = useState(false);
@@ -27,6 +27,7 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {saving && <div className="saving-bar" />}
       {mobileOpen && <div className="mobile-overlay" onClick={() => setMobileOpen(false)} />}
 
       <Sidebar

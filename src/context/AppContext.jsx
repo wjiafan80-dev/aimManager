@@ -8,6 +8,7 @@ export const useApp = () => useContext(AppContext);
 export function AppProvider({ children }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [token, setToken] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [toasts, setToasts] = useState([]);
@@ -48,6 +49,7 @@ export function AppProvider({ children }) {
 
   // ── Generic API call wrapper ─────────────────────
   async function call(fn, successMsg) {
+    setSaving(true);
     try {
       const result = await fn();
       if (result && result.error) { toast(result.error, 'err'); return null; }
@@ -57,6 +59,8 @@ export function AppProvider({ children }) {
     } catch (e) {
       toast(e.message, 'err');
       return null;
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -95,7 +99,7 @@ export function AppProvider({ children }) {
   const saveSettings = (d) => call(() => api.saveSettings(d, token), '設定已儲存');
 
   const value = {
-    data, loading, token, isAdmin, toasts,
+    data, loading, saving, token, isAdmin, toasts,
     loadData, toast,
     onGoogleLogin, logout,
     saveTool, deleteTool,

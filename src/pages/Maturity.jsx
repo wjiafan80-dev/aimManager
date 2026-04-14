@@ -3,6 +3,7 @@ import { Radar } from 'react-chartjs-2';
 import { Chart, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 import { useApp } from '../context/AppContext.jsx';
 import Modal from '../components/common/Modal.jsx';
+import SaveBtn from '../components/common/SaveBtn.jsx';
 import { toolUserCount, activePeopleCount } from '../utils/calc.js';
 
 Chart.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
@@ -100,7 +101,7 @@ export default function Maturity() {
         footer={
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button className="btn btn-ghost" onClick={() => setEditDept(null)}>取消</button>
-            <button className="btn btn-primary" onClick={handleSave}>儲存</button>
+            <SaveBtn onClick={handleSave} />
           </div>
         }
       >

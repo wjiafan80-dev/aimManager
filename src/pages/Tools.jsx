@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import SaveBtn from '../components/common/SaveBtn.jsx';
 import { Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
 import { useApp } from '../context/AppContext.jsx';
@@ -251,7 +252,7 @@ export default function Tools({ autoAction }) {
         footer={
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button className="btn btn-ghost" onClick={() => setToolModal(null)}>取消</button>
-            <button className="btn btn-primary" onClick={handleSaveTool}>儲存</button>
+            <SaveBtn onClick={handleSaveTool} />
           </div>
         }
       >
@@ -315,7 +316,7 @@ export default function Tools({ autoAction }) {
         footer={
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button className="btn btn-ghost" onClick={() => setLogModal(null)}>取消</button>
-            <button className="btn btn-primary" onClick={handleSaveLog}>儲存</button>
+            <SaveBtn onClick={handleSaveLog} />
           </div>
         }
       >
