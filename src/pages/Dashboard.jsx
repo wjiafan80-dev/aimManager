@@ -191,53 +191,11 @@ export default function Dashboard({ onNav }) {
             全公司部隊處於「{fpLevel}」
           </h3>
           <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.6 }}>
-            目前公司總體 AI 滲透率為{' '}
+            目前公司總體 AI 使用率為{' '}
             <strong style={{ color: 'var(--primary)' }}>{penetration}%</strong>，共有{' '}
             <strong style={{ color: 'var(--primary)' }}>{tools.length}</strong>{' '}
             項頂尖武器部署於 {departments.length} 個作戰單位。
           </p>
-        </div>
-      </div>
-
-      {/* ── 雷達圖 + 散點圖 ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 20, marginBottom: 20 }}>
-        <div className="card" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>多維度 AI 成熟度雷達</span>
-            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--primary)', padding: '4px 8px' }} onClick={() => onNav('maturity')}>前往評估</button>
-          </div>
-          <div style={{ height: 280, position: 'relative' }}>
-            <Radar data={radarData} options={{
-              responsive: true, maintainAspectRatio: false,
-              scales: { r: {
-                angleLines: { color: 'rgba(0,0,0,0.05)' },
-                grid: { color: 'rgba(0,0,0,0.05)' },
-                pointLabels: { color: '#78716C', font: { size: 13 } },
-                suggestedMin: 0, suggestedMax: 5,
-                ticks: { display: false },
-              }},
-              plugins: { legend: { display: false } },
-            }} />
-          </div>
-        </div>
-        <div className="card" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>裝備滲透率分析矩陣</span>
-            <span style={{ fontSize: 12, color: 'var(--muted)', background: 'var(--bg)', padding: '4px 10px', borderRadius: 12 }}>橫軸：部門人數 / 縱軸：滲透率</span>
-          </div>
-          <div style={{ height: 280, position: 'relative' }}>
-            <Bubble data={bubbleData} options={{
-              responsive: true, maintainAspectRatio: false,
-              scales: {
-                x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#78716C' }, title: { display: true, text: '部門人數', color: '#78716C' } },
-                y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#78716C' }, suggestedMin: 0, suggestedMax: 100, title: { display: true, text: '滲透率 (%)', color: '#78716C' } },
-              },
-              plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: ctx => { const d = bubbleRaw[ctx.dataIndex]; return `${d.label}: ${d.x}人, 滲透率${d.y}%, 部署 ${d.toolCount} 把武器`; } } },
-              },
-            }} />
-          </div>
         </div>
       </div>
 
@@ -304,7 +262,7 @@ export default function Dashboard({ onNav }) {
 
       {/* ── 統計卡片 ── */}
       <div className="stats-grid" style={{ marginBottom: 20 }}>
-        <StatCard label="AI 使用人數" value={aiUsers} sub={`/ ${totalPeople} 人・${penetration}% 滲透率`} color="#6366f1" onClick={() => onNav('personnel')} />
+        <StatCard label="AI 使用人數" value={aiUsers} sub={`/ ${totalPeople} 人・${penetration}% 使用率`} color="#6366f1" onClick={() => onNav('personnel')} />
         <StatCard
           label="授權使用狀況"
           value={issued}
@@ -313,9 +271,9 @@ export default function Dashboard({ onNav }) {
           onClick={() => onNav('tools')}
         />
         <StatCard
-          label="每月費用"
+          label="每月總費用"
           value={`NT$${Math.round(monthlyTotal).toLocaleString()}`}
-          sub={idleCost > 0 ? `閒置 NT$${Math.round(idleCost).toLocaleString()}` : 'NTD/月'}
+          sub={idleCost > 0 ? `其中閒置 NT$${Math.round(idleCost).toLocaleString()}` : 'NTD/月'}
           color={idleCost > 0 ? '#f59e0b' : '#10b981'}
           subStyle={{ color: idleCost > 0 ? '#f59e0b' : undefined }}
           onClick={() => onNav('reports')}
