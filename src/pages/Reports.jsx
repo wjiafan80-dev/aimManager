@@ -52,7 +52,7 @@ function ByDept({ departments, tools, usd }) {
     activePeople.forEach(p => {
       centers[c].monthly += personMonthlyNTD(p, tools, usd);
       centers[c].annual += personAnnualNTD(p, tools, usd);
-      normTools(p.tools).filter(t => !t.revoked && !isExpired(t)).forEach(t => centers[c].toolSet.add(t.id));
+      normTools(p.tools).filter(t => !t.revoked && !isExpired(t)).forEach(t => centers[c].toolSet.add(t.toolId));
     });
   });
 
@@ -95,8 +95,8 @@ function ByDept({ departments, tools, usd }) {
                   <td colSpan={2}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {normTools(p.tools).filter(t => !t.revoked && !isExpired(t)).map(t => {
-                        const tool = tools.find(x => x.id === t.id);
-                        return tool ? <span key={t.id} className="tool-chip" style={{ background: tool.color + '22', color: tool.color, fontSize: 11 }}>{toolName(tool)}</span> : null;
+                        const tool = tools.find(x => x.id === t.toolId);
+                        return tool ? <span key={t.toolId} className="tool-chip" style={{ background: tool.color + '22', color: tool.color, fontSize: 11 }}>{toolName(tool)}</span> : null;
                       })}
                     </div>
                   </td>
@@ -144,8 +144,8 @@ function ByTool({ departments, tools, usd }) {
           const mUnit = toolMonthlyNTD(t, usd);
           const aUnit = toolAnnualNTD(t, usd);
           const usersOfTool = departments.flatMap(d =>
-            (d.people || []).filter(p => !p.removed && normTools(p.tools).some(x => x.id === t.id && !x.revoked && !isExpired(x)))
-              .map(p => ({ dept: d, person: p, entry: normTools(p.tools).find(x => x.id === t.id && !x.revoked) }))
+            (d.people || []).filter(p => !p.removed && normTools(p.tools).some(x => x.toolId === t.id && !x.revoked && !isExpired(x)))
+              .map(p => ({ dept: d, person: p, entry: normTools(p.tools).find(x => x.toolId === t.id && !x.revoked) }))
           );
           return (
             <>
@@ -211,8 +211,8 @@ function FullList({ departments, tools, usd }) {
             <td>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {normTools(person.tools).filter(t => !t.revoked && !isExpired(t)).map(t => {
-                  const tool = tools.find(x => x.id === t.id);
-                  return tool ? <span key={t.id} className="tool-chip" style={{ background: tool.color + '22', color: tool.color, fontSize: 11 }}>{toolName(tool)}</span> : null;
+                  const tool = tools.find(x => x.id === t.toolId);
+                  return tool ? <span key={t.toolId} className="tool-chip" style={{ background: tool.color + '22', color: tool.color, fontSize: 11 }}>{toolName(tool)}</span> : null;
                 })}
               </div>
             </td>
@@ -230,7 +230,7 @@ function Disabled({ departments, tools, isAdmin, onDelete }) {
   const rows = departments.flatMap(d =>
     (d.people || []).flatMap(p =>
       normTools(p.tools).filter(t => t.revoked).map(t => {
-        const tool = tools.find(x => x.id === t.id);
+        const tool = tools.find(x => x.id === t.toolId);
         return { dept: d, person: p, tool, entry: t };
       })
     )
@@ -293,8 +293,8 @@ function MultiTool({ departments, tools, usd }) {
             <td>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {active.map(t => {
-                  const tool = tools.find(x => x.id === t.id);
-                  return tool ? <span key={t.id} className="tool-chip" style={{ background: tool.color + '22', color: tool.color, fontSize: 11 }}>{toolName(tool)}</span> : null;
+                  const tool = tools.find(x => x.id === t.toolId);
+                  return tool ? <span key={t.toolId} className="tool-chip" style={{ background: tool.color + '22', color: tool.color, fontSize: 11 }}>{toolName(tool)}</span> : null;
                 })}
               </div>
             </td>
@@ -328,7 +328,7 @@ export default function Reports() {
     const rows = departments.flatMap(d =>
       (d.people || []).filter(p => !p.removed).flatMap(p =>
         normTools(p.tools).filter(t => !t.revoked && !isExpired(t)).map(t => {
-          const tool = tools.find(x => x.id === t.id);
+          const tool = tools.find(x => x.id === t.toolId);
           return [d.center, d.name, p.name, p.empId || '', tool ? toolName(tool) : '', t.account || '', t.start || '', t.end || '', Math.round(toolMonthlyNTD(tool, usd))];
         })
       )

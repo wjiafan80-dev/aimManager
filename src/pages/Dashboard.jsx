@@ -35,7 +35,7 @@ export default function Dashboard({ onNav }) {
     (d.people || []).forEach(p =>
       normTools(p.tools || []).forEach(t => {
         if (t.revoked || !t.end || t.end > cutoff) return;
-        const tool = tools.find(x => x.id === t.id);
+        const tool = tools.find(x => x.id === t.toolId);
         if (!tool) return;
         expiringItems.push({ dept: d, person: p, tool, entry: t, expired: t.end < now });
       })
@@ -69,7 +69,7 @@ export default function Dashboard({ onNav }) {
       if (p.removed) return;
       normTools(p.tools).forEach(t => {
         if (t.revoked || isExpired(t)) return;
-        const tool = tools.find(x => x.id === t.id);
+        const tool = tools.find(x => x.id === t.toolId);
         if (tool) centers[c] += toolMonthlyNTD(tool, usd);
       });
     });
@@ -90,7 +90,7 @@ export default function Dashboard({ onNav }) {
   async function handleExtend(dept, person, tool) {
     const updated = { ...person };
     updated.tools = normTools(person.tools).map(t =>
-      t.id === tool.id && !t.revoked
+      t.toolId === tool.id && !t.revoked
         ? { ...t, end: ymAdd12(t.end >= ym() ? t.end : ym()) }
         : t
     );

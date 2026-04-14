@@ -8,9 +8,9 @@ import { ym, ymAdd12, today } from '../utils/date.js';
 // ── Person Modal ──────────────────────────────────────────────────────────────
 function PersonModal({ person, deptId, departments, tools, usd, onClose, onSave }) {
   const initAssignments = normTools((person?.tools) || []).map(t => ({
-    id: t.id?.startsWith?.('a') ? t.id : uid(), // keep assignment IDs
+    id: t._assignId || uid(),
     personId: person?.id || '',
-    toolId: t.id,
+    toolId: t.toolId,
     start: t.start || '',
     end: t.end || '',
     account: t.account || '',
@@ -537,10 +537,10 @@ function PersonRow({ dept, person, tools, usd, isAdmin, onEdit, onDelete }) {
       <td>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {activeAssignments.map(t => {
-            const tool = tools.find(x => x.id === t.id);
+            const tool = tools.find(x => x.id === t.toolId);
             if (!tool) return null;
             return (
-              <span key={t.id} className="tool-chip" style={{ background: tool.color + '22', color: tool.color }}>
+              <span key={t.toolId} className="tool-chip" style={{ background: tool.color + '22', color: tool.color }}>
                 {toolName(tool)}
                 {t.end && <span style={{ opacity: 0.7, fontSize: 10 }}> {t.end}</span>}
               </span>

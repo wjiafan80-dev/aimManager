@@ -16,11 +16,10 @@ export default function Lookup() {
     (dept.people || []).forEach(p => {
       if (p.removed) return;
       normTools(p.tools).forEach(t => {
-        if (t.toolId) return; // skip if wrong shape
-        if (!t.id) return;
-        if (toolId && t.id !== toolId) return;
+        if (!t.toolId) return;
+        if (toolId && t.toolId !== toolId) return;
         if (t.revoked || isExpired(t)) return;
-        const tool = tools.find(x => x.id === t.id);
+        const tool = tools.find(x => x.id === t.toolId);
         if (!tool) return;
         const q = search.toLowerCase();
         if (q && !p.name.toLowerCase().includes(q) && !(p.empId || '').includes(q)) return;
