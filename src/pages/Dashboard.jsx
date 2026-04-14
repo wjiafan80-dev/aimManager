@@ -173,6 +173,7 @@ export default function Dashboard({ onNav }) {
   }
 
   async function handleRevoke(dept, person, tool) {
+    if (!confirm(`確定收回 ${person.name} 的 ${tool.name || tool.id} 授權？`)) return;
     await revokeAssignment({ personId: person.id, toolId: tool.id, end: ym() });
   }
 

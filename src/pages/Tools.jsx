@@ -213,7 +213,7 @@ export default function Tools({ autoAction }) {
                     <td style={{ color: 'var(--muted)', fontSize: 12 }}>{l.ts || '—'}</td>
                     {isAdmin && (
                       <td>
-                        <button className="btn btn-danger btn-sm" onClick={() => deleteLog(l.id)}>刪除</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => { if (confirm('確定刪除此採購紀錄？')) deleteLog(l.id); }}>刪除</button>
                       </td>
                     )}
                   </tr>
