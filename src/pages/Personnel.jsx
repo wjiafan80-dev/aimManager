@@ -286,8 +286,12 @@ export default function Personnel({ autoAction }) {
           onChange={e => setSearch(e.target.value)}
           style={{ width: 220 }}
         />
-        <button className="btn btn-ghost btn-sm" onClick={expandAll}>全部展開</button>
-        <button className="btn btn-ghost btn-sm" onClick={collapseAll}>全部收起</button>
+        <button className="btn btn-ghost btn-sm" onClick={() => {
+          const allExpanded = Object.keys(centers).every(c => expanded[c]);
+          allExpanded ? collapseAll() : expandAll();
+        }}>
+          {Object.keys(centers).every(c => expanded[c]) ? '全部收起' : '全部展開'}
+        </button>
         {isAdmin && (
           <>
             <button className="btn btn-ghost" onClick={() => setRemovedModal(true)}>
@@ -337,6 +341,19 @@ export default function Personnel({ autoAction }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontWeight: 700, color: 'var(--primary)' }}>NT${Math.round(totalCost).toLocaleString()}/月</span>
+                {isExpanded && (
+                  <button className="btn btn-ghost btn-sm" onClick={e => {
+                    e.stopPropagation();
+                    const allOpen = depts.every(d => deptOpen[d.id]);
+                    setDeptOpen(prev => {
+                      const next = { ...prev };
+                      depts.forEach(d => { next[d.id] = !allOpen; });
+                      return next;
+                    });
+                  }}>
+                    {depts.every(d => deptOpen[d.id]) ? '收起單位' : '展開單位'}
+                  </button>
+                )}
                 {isAdmin && (
                   <button className="btn btn-ghost btn-sm" onClick={e => { e.stopPropagation(); setRenameCenterVal(centerName); setRenameCenterModal(centerName); }}>
                     重命名
