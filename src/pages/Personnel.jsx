@@ -147,7 +147,8 @@ export default function Personnel({ autoAction }) {
   const { data, isAdmin, saveDept, deleteDept, renameCenter, savePersonFull, deletePerson, permanentDeletePerson } = useApp();
 
   const [search, setSearch]           = useState('');
-  const [collapsed, setCollapsed]     = useState({});
+  const [expanded, setExpanded]       = useState({});   // center 展開狀態，預設全收
+  const [deptOpen, setDeptOpen]       = useState({});   // dept 展開狀態，預設全收
   const [personModal, setPersonModal] = useState(null); // { person?, deptId }
   const [deptModal, setDeptModal]     = useState(null); // 'new' | dept object
   const [deptForm, setDeptForm]       = useState({ name: '', center: '' });
@@ -182,7 +183,19 @@ export default function Personnel({ autoAction }) {
     : [];
 
   function toggleCenter(center) {
-    setCollapsed(c => ({ ...c, [center]: !c[center] }));
+    setExpanded(e => ({ ...e, [center]: !e[center] }));
+  }
+
+  function expandAll() {
+    const allCenters = Object.keys(centers).reduce((acc, c) => ({ ...acc, [c]: true }), {});
+    const allDepts = departments.reduce((acc, d) => ({ ...acc, [d.id]: true }), {});
+    setExpanded(allCenters);
+    setDeptOpen(allDepts);
+  }
+
+  function collapseAll() {
+    setExpanded({});
+    setDeptOpen({});
   }
 
   function openNewPerson(deptId) {
@@ -273,6 +286,8 @@ export default function Personnel({ autoAction }) {
           onChange={e => setSearch(e.target.value)}
           style={{ width: 220 }}
         />
+        <button className="btn btn-ghost btn-sm" onClick={expandAll}>全部展開</button>
+        <button className="btn btn-ghost btn-sm" onClick={collapseAll}>全部收起</button>
         {isAdmin && (
           <>
             <button className="btn btn-ghost" onClick={() => setRemovedModal(true)}>
@@ -305,7 +320,7 @@ export default function Personnel({ autoAction }) {
 
       {/* Centers */}
       {!searchQuery && Object.entries(centers).map(([centerName, depts]) => {
-        const isCollapsed = collapsed[centerName];
+        const isExpanded = !!expanded[centerName];
         const totalPeople = depts.reduce((s, d) => s + (d.people || []).filter(p => !p.removed).length, 0);
         const totalCost = depts.reduce((s, d) =>
           s + (d.people || []).filter(p => !p.removed).reduce((ss, p) => ss + personMonthlyNTD(p, tools, usd), 0), 0);
@@ -314,7 +329,7 @@ export default function Personnel({ autoAction }) {
           <div key={centerName} className="card" style={{ marginBottom: 16 }}>
             <div className="card-header" style={{ cursor: 'pointer' }} onClick={() => toggleCenter(centerName)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, transform: isCollapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.2s' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, transform: isExpanded ? 'none' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>
                   <polyline points="6 9 12 15 18 9"/>
                 </svg>
                 <span className="card-title">{centerName}</span>
@@ -330,10 +345,12 @@ export default function Personnel({ autoAction }) {
               </div>
             </div>
 
-            {!isCollapsed && (
+            {isExpanded && (
               <div style={{ padding: '0 16px 16px' }}>
                 {depts.map(dept => (
                   <DeptCard key={dept.id} dept={dept} tools={tools} usd={usd} isAdmin={isAdmin}
+                    open={!!deptOpen[dept.id]}
+                    onToggle={() => setDeptOpen(d => ({ ...d, [dept.id]: !d[dept.id] }))}
                     onEditDept={() => openEditDept(dept)}
                     onDeleteDept={() => { if (confirm(`確定刪除「${dept.name}」及其所有人員？`)) deleteDept(dept.id); }}
                     onAddPerson={() => openNewPerson(dept.id)}
@@ -477,14 +494,13 @@ export default function Personnel({ autoAction }) {
 }
 
 // ── Dept Card ─────────────────────────────────────────────────────────────────
-function DeptCard({ dept, tools, usd, isAdmin, onEditDept, onDeleteDept, onAddPerson, onEditPerson, onDeletePerson }) {
-  const [open, setOpen] = useState(true);
+function DeptCard({ dept, tools, usd, isAdmin, open, onToggle, onEditDept, onDeleteDept, onAddPerson, onEditPerson, onDeletePerson }) {
   const activePeople = (dept.people || []).filter(p => !p.removed);
   const totalCost = activePeople.reduce((s, p) => s + personMonthlyNTD(p, tools, usd), 0);
 
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 8, marginBottom: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }} onClick={onToggle}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform 0.2s', flexShrink: 0 }}>
           <polyline points="6 9 12 15 18 9"/>
         </svg>
