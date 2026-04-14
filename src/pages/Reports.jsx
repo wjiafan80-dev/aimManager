@@ -386,7 +386,12 @@ export default function Reports() {
         {tab === 'byDept'    && <ByDept    departments={departments} tools={tools} usd={usd} />}
         {tab === 'byTool'    && <ByTool    departments={departments} tools={tools} usd={usd} />}
         {tab === 'fullList'  && <FullList  departments={departments} tools={tools} usd={usd} />}
-        {tab === 'disabled'  && <Disabled  departments={departments} tools={tools} isAdmin={isAdmin} />}
+        {tab === 'disabled'  && <Disabled  departments={departments} tools={tools} isAdmin={isAdmin}
+          onDelete={entry => {
+            if (!confirm('確定刪除此停用紀錄？')) return;
+            deleteAssignment(entry._assignId);
+          }}
+        />}
         {tab === 'multiTool' && <MultiTool departments={departments} tools={tools} usd={usd} />}
       </div>
     </div>
