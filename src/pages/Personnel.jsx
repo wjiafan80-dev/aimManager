@@ -157,6 +157,7 @@ export default function Personnel({ autoAction }) {
   const [batchModal, setBatchModal]   = useState(false);
   const [batchForm, setBatchForm]     = useState({ toolId: '', start: ym(), end: '', account: '' });
   const [batchSelected, setBatchSelected] = useState(new Set());
+  const [batchSearch, setBatchSearch] = useState('');
   const [renameCenterModal, setRenameCenterModal] = useState(null);
   const [renameCenterVal, setRenameCenterVal]     = useState('');
   const [assignModal, setAssignModal]             = useState(false);
@@ -274,6 +275,7 @@ export default function Personnel({ autoAction }) {
     }
     setBatchModal(false);
     setBatchSelected(new Set());
+    setBatchSearch('');
   }
 
   // Removed list
@@ -510,10 +512,10 @@ export default function Personnel({ autoAction }) {
       </Modal>
 
       {/* Batch Assign Modal */}
-      <Modal show={batchModal} onClose={() => setBatchModal(false)} title="批次指派工具" size="lg"
+      <Modal show={batchModal} onClose={() => { setBatchModal(false); setBatchSearch(''); }} title="批次指派工具" size="lg"
         footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>已選 {batchSelected.size} 人</span>
-          <button className="btn btn-ghost" onClick={() => setBatchModal(false)}>取消</button>
+          <button className="btn btn-ghost" onClick={() => { setBatchModal(false); setBatchSearch(''); }}>取消</button>
           <SaveBtn onClick={handleBatchAssign} disabled={!batchForm.toolId || batchSelected.size === 0}>指派</SaveBtn>
         </div>}
       >
@@ -535,13 +537,19 @@ export default function Personnel({ autoAction }) {
               <input className="input" type="month" value={batchForm.end} onChange={e => setBatchForm(f => ({ ...f, end: e.target.value }))} />
             </div>
           </div>
+          <input
+            className="input"
+            placeholder="搜尋姓名或員工編號..."
+            value={batchSearch}
+            onChange={e => setBatchSearch(e.target.value)}
+            style={{ marginBottom: 4 }}
+          />
           <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
-            {departments.map(dept => (
-              <div key={dept.id}>
-                <div style={{ padding: '8px 12px', background: 'var(--bg-subtle)', fontWeight: 600, fontSize: 12, color: 'var(--muted)', position: 'sticky', top: 0 }}>
-                  {dept.name}
-                </div>
-                {(dept.people || []).filter(p => !p.removed).map(p => (
+            {(() => {
+              const kw = batchSearch.trim().toLowerCase();
+              const renderPerson = (p, showDept) => {
+                const dept = departments.find(d => d.id === p.deptId);
+                return (
                   <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
                     <input type="checkbox"
                       checked={batchSelected.has(p.id)}
@@ -549,10 +557,26 @@ export default function Personnel({ autoAction }) {
                     />
                     <span>{p.name}</span>
                     {p.empId && <span style={{ fontSize: 12, color: 'var(--muted)' }}>{p.empId}</span>}
+                    {showDept && dept && <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 'auto' }}>{dept.name}</span>}
                   </label>
-                ))}
-              </div>
-            ))}
+                );
+              };
+              if (kw) {
+                const matched = departments.flatMap(d =>
+                  (d.people || []).filter(p => !p.removed && (p.name.toLowerCase().includes(kw) || (p.empId || '').toLowerCase().includes(kw)))
+                );
+                if (matched.length === 0) return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>無符合結果</div>;
+                return matched.map(p => renderPerson(p, true));
+              }
+              return departments.map(dept => (
+                <div key={dept.id}>
+                  <div style={{ padding: '8px 12px', background: 'var(--bg-subtle)', fontWeight: 600, fontSize: 12, color: 'var(--muted)', position: 'sticky', top: 0 }}>
+                    {dept.name}
+                  </div>
+                  {(dept.people || []).filter(p => !p.removed).map(p => renderPerson(p, false))}
+                </div>
+              ));
+            })()}
           </div>
         </div>
       </Modal>
