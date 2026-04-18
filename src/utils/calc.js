@@ -22,7 +22,7 @@ export function normTools(tools) {
 }
 
 export function toolMonthlyNTD(tool, usdRate) {
-  if (tool.listPrice || tool.taxRate || tool.discountRate || tool.pricingMode) {
+  if (tool.listPrice || tool.taxRate || tool.discountPercent || tool.pricingMode) {
     return toNTD(normalizeToolPricing(tool).monthly, tool.currency, usdRate);
   }
   if (tool.monthly) return toNTD(tool.monthly, tool.currency, usdRate);
@@ -31,12 +31,24 @@ export function toolMonthlyNTD(tool, usdRate) {
 }
 
 export function toolAnnualNTD(tool, usdRate) {
-  if (tool.listPrice || tool.taxRate || tool.discountRate || tool.pricingMode) {
+  if (tool.listPrice || tool.taxRate || tool.discountPercent || tool.pricingMode) {
     return toNTD(normalizeToolPricing(tool).annual, tool.currency, usdRate);
   }
   if (tool.annual) return toNTD(tool.annual, tool.currency, usdRate);
   if (tool.monthly) return toNTD(tool.monthly, tool.currency, usdRate) * 12;
   return 0;
+}
+
+export function toolAnnualListPriceNTD(tool, usdRate) {
+  const pricingMode = tool.pricingMode || (tool.annual && !tool.monthly ? 'annual' : 'monthly');
+  const listPrice = Number(
+    tool.listPrice ??
+    (pricingMode === 'annual' ? tool.annual : tool.monthly) ??
+    0
+  ) || 0;
+  const taxRate = Number(tool.taxRate ?? 0) || 0;
+  const annualBase = pricingMode === 'annual' ? listPrice : listPrice * 12;
+  return toNTD(annualBase * (1 + taxRate / 100), tool.currency, usdRate);
 }
 
 export function normalizeToolPricing(tool) {

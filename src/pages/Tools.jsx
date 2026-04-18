@@ -4,7 +4,7 @@ import { Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
 import { useApp } from '../context/AppContext.jsx';
 import Modal from '../components/common/Modal.jsx';
-import { normalizeToolPricing, toolMonthlyNTD, toolAnnualNTD, toolUserCount } from '../utils/calc.js';
+import { normalizeToolPricing, toolAnnualListPriceNTD, toolMonthlyNTD, toolAnnualNTD, toolUserCount } from '../utils/calc.js';
 import { ntd, toolName, uid } from '../utils/format.js';
 import { ym, today } from '../utils/date.js';
 
@@ -164,6 +164,15 @@ export default function Tools({ autoAction }) {
   };
 
   const formPricing = getFormPricing(form);
+  const annualListTotal = tools.reduce((sum, tool) => {
+    const basis = tool.seats || toolUserCount(tool.id, departments);
+    return sum + toolAnnualListPriceNTD(tool, usd) * basis;
+  }, 0);
+  const annualDiscountedTotal = tools.reduce((sum, tool) => {
+    const basis = tool.seats || toolUserCount(tool.id, departments);
+    return sum + toolAnnualNTD(tool, usd) * basis;
+  }, 0);
+  const annualSavings = Math.max(0, annualListTotal - annualDiscountedTotal);
 
   return (
     <div>
@@ -173,6 +182,12 @@ export default function Tools({ autoAction }) {
         </div>
       )}
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+        <SummaryCard title="每年總金額原價" value={ntd(annualListTotal)} color="#475569" />
+        <SummaryCard title="每年總金額折扣後價" value={ntd(annualDiscountedTotal)} color="#2563eb" />
+        <SummaryCard title="每年省下金額" value={ntd(annualSavings)} color="#16a34a" />
+      </div>
+
       {/* Tools table */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div style={{ overflowX: 'auto' }}>
@@ -180,13 +195,12 @@ export default function Tools({ autoAction }) {
             <thead>
               <tr>
                 <th>工具</th>
-                <th>幣別</th>
-                <th>定價條件</th>
+                <th>稅金 / 折扣</th>
                 <th>月費</th>
                 <th>年費</th>
-                <th>已發 / 購買</th>
                 <th>月費合計</th>
                 <th>年費合計</th>
+                <th>已發 / 購買</th>
                 {isAdmin && <th>操作</th>}
               </tr>
             </thead>
@@ -206,13 +220,14 @@ export default function Tools({ autoAction }) {
                         <span style={{ fontWeight: 600 }}>{toolName(t)}</span>
                       </div>
                     </td>
-                    <td><span className="badge">{t.currency}</span></td>
                     <td style={{ fontSize: 12, lineHeight: 1.5 }}>
-                      <div>定價 {pricing.listPrice ? pricing.listPrice.toLocaleString() : '—'}</div>
-                      <div style={{ color: 'var(--muted)' }}>稅 {pricing.taxRate}% / 折扣 {pricing.discountPercent}%</div>
+                      <div>稅 {pricing.taxRate}%</div>
+                      <div style={{ color: 'var(--muted)' }}>折扣 {pricing.discountPercent}%</div>
                     </td>
-                    <td>{t.monthly ? `${t.monthly.toLocaleString()} (NT$${Math.round(mNTD).toLocaleString()})` : '—'}</td>
-                    <td>{t.annual ? `${t.annual.toLocaleString()} (NT$${Math.round(aNTD).toLocaleString()})` : '—'}</td>
+                    <td>{t.monthly ? ntd(mNTD) : '—'}</td>
+                    <td>{t.annual ? ntd(aNTD) : '—'}</td>
+                    <td style={{ fontWeight: 700 }}>{ntd(mNTD * basis)}</td>
+                    <td style={{ fontWeight: 700 }}>{ntd(aNTD * basis)}</td>
                     <td>
                       <span style={{ color: users > (t.seats || Infinity) ? '#ef4444' : undefined }}>
                         {users}
@@ -223,8 +238,6 @@ export default function Tools({ autoAction }) {
                         </span>
                       )}
                     </td>
-                    <td style={{ fontWeight: 700 }}>NT${Math.round(mNTD * basis).toLocaleString()}</td>
-                    <td style={{ fontWeight: 700 }}>NT${Math.round(aNTD * basis).toLocaleString()}</td>
                     {isAdmin && (
                       <td>
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -434,6 +447,15 @@ export default function Tools({ autoAction }) {
           </div>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+function SummaryCard({ title, value, color }) {
+  return (
+    <div className="card" style={{ padding: '16px 20px' }}>
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>{title}</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color }}>{value}</div>
     </div>
   );
 }
