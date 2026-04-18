@@ -100,7 +100,7 @@ export default function Settings() {
           <span className="card-title">關於</span>
         </div>
         <div style={{ padding: '16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.8 }}>
-          <p>AI 工具管理系統 v2.1.0</p>
+          <p>AI 工具管理系統 v2.1.1</p>
           <p>資料儲存於 Google Sheets，後端由 Google Apps Script 驅動。</p>
           <p>僅管理員帳號可新增、編輯或刪除資料；所有人可查看。</p>
         </div>

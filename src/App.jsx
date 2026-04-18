@@ -8,7 +8,6 @@ import Tools from './pages/Tools.jsx';
 import Personnel from './pages/Personnel.jsx';
 import Lookup from './pages/Lookup.jsx';
 import Reports from './pages/Reports.jsx';
-import Maturity from './pages/Maturity.jsx';
 import Settings from './pages/Settings.jsx';
 
 export default function App() {
@@ -97,7 +96,6 @@ export default function App() {
               {page === 'personnel' && <Personnel autoAction={pageAction} />}
               {page === 'lookup' && <Lookup />}
               {page === 'reports' && <Reports />}
-              {page === 'maturity' && <Maturity />}
               {page === 'settings' && <Settings />}
             </>
           )}

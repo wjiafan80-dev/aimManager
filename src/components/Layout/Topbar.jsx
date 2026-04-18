@@ -6,7 +6,6 @@ const PAGE_TITLES = {
   personnel: '人員管理',
   lookup: '帳號查詢',
   reports: '費用報表',
-  maturity: 'AI 成熟度評估',
   settings: '設定',
 };
 

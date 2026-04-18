@@ -104,7 +104,7 @@ export default function Dashboard({ onNav }) {
               集中掌握 AI 工具授權、使用情況與預算風險
             </h2>
             <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.7, maxWidth: 680 }}>
-              給主管看的重點不是系統功能，而是目前花多少、誰在用、哪裡有閒置、哪些授權快到期，以及哪一些單位已經具備擴大導入條件。
+              提供統一的工具、人員、授權與費用資訊，方便日常管理、授權盤點與預算追蹤。
             </p>
           </div>
 
@@ -171,10 +171,6 @@ export default function Dashboard({ onNav }) {
         <button className="quick-btn" onClick={() => onNav('tools')}>
           <QuickIcon icon="tools" />
           看工具授權
-        </button>
-        <button className="quick-btn" onClick={() => onNav('maturity')}>
-          <QuickIcon icon="maturity" />
-          看成熟度
         </button>
       </div>
 
