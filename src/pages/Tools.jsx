@@ -288,25 +288,39 @@ export default function Tools({ autoAction }) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(320px, 1.45fr) minmax(240px, 0.9fr)',
+          gap: 16,
+          marginBottom: 20,
+          alignItems: 'stretch',
+        }}
+      >
         <SummaryCard
           title="每年實際總金額"
           subtitle="目前所有已購授權，實際每年支出的總費用"
           value={ntd(annualDiscountedTotal)}
           color="#2563eb"
+          featured
         />
-        <SummaryCard
-          title="每年折扣金額"
-          subtitle="相較工具定價後，目前每年合計省下的金額"
-          value={ntd(annualSavings)}
-          color="#16a34a"
-        />
-        <SummaryCard
-          title="每年定價總金額"
-          subtitle="未套用折扣前，依原價計算的年度總金額"
-          value={ntd(annualListTotal)}
-          color="#475569"
-        />
+
+        <div style={{ display: 'grid', gap: 16 }}>
+          <SummaryCard
+            title="每年折扣金額"
+            subtitle="相較工具定價後，目前每年合計省下的金額"
+            value={ntd(annualSavings)}
+            color="#16a34a"
+            compact
+          />
+          <SummaryCard
+            title="每年定價總金額"
+            subtitle="未套用折扣前，依原價計算的年度總金額"
+            value={ntd(annualListTotal)}
+            color="#475569"
+            compact
+          />
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
@@ -683,13 +697,32 @@ export default function Tools({ autoAction }) {
   );
 }
 
-function SummaryCard({ title, subtitle, value, color }) {
+function SummaryCard({ title, subtitle, value, color, featured = false, compact = false }) {
   return (
-    <div className="card" style={{ padding: '18px 20px' }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 28, fontWeight: 800, color, letterSpacing: '-0.02em' }}>{value}</div>
+    <div
+      className="card"
+      style={{
+        padding: featured ? '24px 26px' : compact ? '16px 18px' : '18px 20px',
+        border: featured ? '1px solid #bfdbfe' : undefined,
+        background: featured ? 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)' : undefined,
+      }}
+    >
+      <div style={{ fontSize: featured ? 13 : 12, fontWeight: 700, color: 'var(--muted)', marginBottom: featured ? 10 : 8 }}>
+        {title}
+      </div>
+      <div
+        style={{
+          fontSize: featured ? 40 : compact ? 24 : 28,
+          fontWeight: 800,
+          color,
+          letterSpacing: '-0.03em',
+          lineHeight: 1.05,
+        }}
+      >
+        {value}
+      </div>
       {subtitle && (
-        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10, lineHeight: 1.6 }}>
+        <div style={{ fontSize: compact ? 11 : 12, color: 'var(--muted)', marginTop: featured ? 12 : 10, lineHeight: 1.6 }}>
           {subtitle}
         </div>
       )}

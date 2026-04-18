@@ -2,7 +2,6 @@ import { useApp } from '../context/AppContext.jsx';
 import {
   activePeopleCount,
   aiUsersCount,
-  fpScore,
   getExpiringItems,
   normTools,
   seatCostNTD,
@@ -13,12 +12,6 @@ import {
   unassignedCostNTD,
 } from '../utils/calc.js';
 import { ntd, toolName } from '../utils/format.js';
-
-function getScoreLabel(score) {
-  if (score >= 70) return '全面推進期';
-  if (score >= 40) return '擴大導入期';
-  return '基礎建置期';
-}
 
 function buildTopCostTools(tools, departments, usd) {
   return [...tools]
@@ -45,7 +38,7 @@ function buildIdleTools(tools, departments) {
     })
     .filter((tool) => tool.idleSeats > 0)
     .sort((left, right) => right.idleSeats - left.idleSeats)
-    .slice(0, 3);
+    .slice(0, 4);
 }
 
 function buildMultiToolPeople(departments) {
@@ -63,6 +56,25 @@ function buildMultiToolPeople(departments) {
     .slice(0, 4);
 }
 
+function buildCenterUsage(departments) {
+  return departments
+    .reduce((map, department) => {
+      const centerName = department.center || department.name || '未分類';
+      const activePeople = (department.people || []).filter((person) => !person.removed);
+      const aiUsers = activePeople.filter((person) =>
+        normTools(person.tools).some((tool) => !tool.revoked),
+      ).length;
+
+      const current = map.get(centerName) || { center: centerName, totalPeople: 0, aiUsers: 0, departments: 0 };
+      current.totalPeople += activePeople.length;
+      current.aiUsers += aiUsers;
+      current.departments += 1;
+      map.set(centerName, current);
+      return map;
+    }, new Map())
+    .values();
+}
+
 export default function Dashboard({ onNav }) {
   const { data } = useApp();
   if (!data) return null;
@@ -78,12 +90,12 @@ export default function Dashboard({ onNav }) {
   const monthlyTotal = seatCostNTD('monthly', tools, departments, usd);
   const annualTotal = seatCostNTD('annual', tools, departments, usd);
   const idleCost = unassignedCostNTD('monthly', tools, departments, usd);
-  const score = fpScore(departments, tools);
   const expiringItems = getExpiringItems(departments, tools, 2);
   const urgentExpiringItems = expiringItems.slice(0, 5);
   const topCostTools = buildTopCostTools(tools, departments, usd);
   const idleTools = buildIdleTools(tools, departments);
   const multiToolPeople = buildMultiToolPeople(departments);
+  const centerUsage = [...buildCenterUsage(departments)].sort((left, right) => right.aiUsers - left.aiUsers);
 
   return (
     <div>
@@ -92,37 +104,42 @@ export default function Dashboard({ onNav }) {
         style={{
           marginBottom: 20,
           padding: '24px 28px',
-          background: 'linear-gradient(135deg, #eef2ff 0%, #f8fafc 55%, #ecfeff 100%)',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #f8fafc 45%, #ecfeff 100%)',
+          border: '1px solid #dbeafe',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <div style={{ fontSize: 12, letterSpacing: '0.08em', color: 'var(--primary)', fontWeight: 700, marginBottom: 8 }}>
-              AI 工具管理儀表板
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <div style={{ fontSize: 12, letterSpacing: '0.08em', color: '#2563eb', fontWeight: 800, marginBottom: 8 }}>
+              AI 工具管理總覽
             </div>
-            <h2 style={{ fontSize: 28, lineHeight: 1.25, marginBottom: 10 }}>
-              集中掌握 AI 工具授權、使用情況與預算風險
+            <h2 style={{ fontSize: 30, lineHeight: 1.25, marginBottom: 10 }}>
+              先看人數、花費、閒置與到期，
+              <br />
+              主管一眼就能掌握目前導入狀況
             </h2>
-            <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.7, maxWidth: 680 }}>
-              提供統一的工具、人員、授權與費用資訊，方便日常管理、授權盤點與預算追蹤。
+            <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.7, maxWidth: 700, margin: 0 }}>
+              這裡整理目前實際使用 AI 工具的人數、授權使用情況、每月與每年花費，以及近期到期與閒置風險，方便快速判讀下一步要優先調整哪一塊。
             </p>
           </div>
 
           <div
             style={{
-              minWidth: 220,
-              background: '#ffffffcc',
+              minWidth: 260,
+              background: '#ffffffd9',
               border: '1px solid #dbeafe',
-              borderRadius: 16,
+              borderRadius: 18,
               padding: '18px 20px',
-              boxShadow: '0 10px 30px rgba(99, 102, 241, 0.08)',
+              boxShadow: '0 10px 30px rgba(37, 99, 235, 0.08)',
             }}
           >
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>AI 戰力指數</div>
-            <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--primary)', lineHeight: 1 }}>{score}</div>
-            <div style={{ marginTop: 6, fontSize: 13, fontWeight: 700, color: '#334155' }}>{getScoreLabel(score)}</div>
-            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>
-              目前 AI 使用率 {penetration}% ，已形成跨單位使用基礎。
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>目前 AI 導入覆蓋率</div>
+            <div style={{ fontSize: 42, fontWeight: 800, color: '#2563eb', lineHeight: 1 }}>{penetration}%</div>
+            <div style={{ marginTop: 8, fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+              {aiUsers} 人使用 AI 工具
+            </div>
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+              全公司共 {totalPeople} 位在職人員，目前已有 {aiUsers} 位配置 AI 工具。
             </div>
           </div>
         </div>
@@ -137,23 +154,23 @@ export default function Dashboard({ onNav }) {
           onClick={() => onNav('personnel')}
         />
         <StatCard
-          label="已配置 / 已採購授權"
+          label="已發 / 已購買授權"
           value={`${issuedSeats}${purchasedSeats ? ` / ${purchasedSeats}` : ''}`}
-          sub={purchasedSeats > 0 ? `目前追蹤 ${tools.length} 項工具授權` : '目前以實際使用人數估算授權'}
+          sub={purchasedSeats > 0 ? `目前共管理 ${tools.length} 項工具授權` : '目前以實際使用人數計算授權需求'}
           color={purchasedSeats > 0 && issuedSeats > purchasedSeats ? '#ef4444' : '#0f766e'}
           onClick={() => onNav('tools')}
         />
         <StatCard
-          label="每月成本"
+          label="每月總費用"
           value={ntd(monthlyTotal)}
-          sub={idleCost > 0 ? `可優先檢討閒置成本 ${ntd(idleCost)}` : '目前未發現明顯閒置成本'}
+          sub={idleCost > 0 ? `其中閒置成本約 ${ntd(idleCost)} / 月` : '目前沒有明顯閒置成本'}
           color={idleCost > 0 ? '#f59e0b' : '#16a34a'}
           onClick={() => onNav('reports')}
         />
         <StatCard
-          label="年度預算需求"
+          label="每年總費用"
           value={ntd(annualTotal)}
-          sub="可作為年度採購與整併評估基準"
+          sub="以目前工具定價與授權數量估算"
           color="#7c3aed"
           onClick={() => onNav('reports')}
         />
@@ -162,48 +179,48 @@ export default function Dashboard({ onNav }) {
       <div className="quick-actions" style={{ marginBottom: 20 }}>
         <button className="quick-btn" onClick={() => onNav('reports')}>
           <QuickIcon icon="report" />
-          查看報表
+          查看費用報表
         </button>
         <button className="quick-btn" onClick={() => onNav('personnel')}>
           <QuickIcon icon="people" />
-          看使用人員
+          查看人員使用狀況
         </button>
         <button className="quick-btn" onClick={() => onNav('tools')}>
           <QuickIcon icon="tools" />
-          看工具授權
+          查看工具與授權
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: 20, marginBottom: 20 }}>
         <InsightCard
-          title="重點摘要"
-          subtitle="整合目前最需要優先關注的管理資訊"
+          title="本週管理重點"
+          subtitle="先看最需要主管關注的 3 件事情"
         >
           <InsightRow
-            title="成本最高工具"
-            value={topCostTools[0] ? `${toolName(topCostTools[0])} ${ntd(topCostTools[0].monthlyCost)}/月` : '尚無資料'}
+            title="目前月費最高工具"
+            value={topCostTools[0] ? `${toolName(topCostTools[0])} ${ntd(topCostTools[0].monthlyCost)} / 月` : '目前沒有資料'}
             tone="#2563eb"
           />
           <InsightRow
-            title="閒置授權風險"
-            value={idleTools[0] ? `${toolName(idleTools[0])} 閒置 ${idleTools[0].idleSeats} 席` : '目前無明顯閒置授權'}
+            title="目前閒置最多工具"
+            value={idleTools[0] ? `${toolName(idleTools[0])} 閒置 ${idleTools[0].idleSeats} 席` : '目前沒有閒置授權'}
             tone="#f59e0b"
           />
           <InsightRow
-            title="近期到期授權"
-            value={urgentExpiringItems[0] ? `${urgentExpiringItems[0].person.name} / ${toolName(urgentExpiringItems[0].tool)} / ${urgentExpiringItems[0].entry.end}` : '近 2 個月無到期授權'}
+            title="最近需要處理的到期項目"
+            value={urgentExpiringItems[0] ? `${urgentExpiringItems[0].person.name} / ${toolName(urgentExpiringItems[0].tool)} / ${urgentExpiringItems[0].entry.end}` : '近 2 個月沒有到期項目'}
             tone="#ef4444"
           />
         </InsightCard>
 
         <InsightCard
-          title="整體狀態"
-          subtitle="快速掌握目前的使用、到期與配置情形"
+          title="整體概況"
+          subtitle="快速掌握目前管理規模"
         >
           <div style={{ display: 'grid', gap: 10 }}>
-            <SummaryPill label="使用人數" value={`${aiUsers} 人`} tone="#2563eb" />
-            <SummaryPill label="工具數量" value={`${tools.length} 項`} tone="#0f766e" />
-            <SummaryPill label="到期提醒" value={`${expiringItems.length} 筆`} tone="#f59e0b" />
+            <SummaryPill label="AI 使用人數" value={`${aiUsers} 人`} tone="#2563eb" />
+            <SummaryPill label="工具種類" value={`${tools.length} 項`} tone="#0f766e" />
+            <SummaryPill label="近期待處理到期" value={`${expiringItems.length} 筆`} tone="#f59e0b" />
             <SummaryPill label="多工具使用者" value={`${multiToolPeople.length} 人`} tone="#7c3aed" />
           </div>
         </InsightCard>
@@ -211,9 +228,26 @@ export default function Dashboard({ onNav }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
         <ListCard
-          title="高成本工具排行"
-          subtitle="先找金額高、再問是否真的有必要保留"
-          actionLabel="前往報表"
+          title="各中心 AI 使用人數"
+          subtitle="可快速看出哪個中心導入最多、哪裡還有擴大空間"
+          actionLabel="查看人員管理"
+          onAction={() => onNav('personnel')}
+        >
+          {centerUsage.map((item) => (
+            <ListRow
+              key={item.center}
+              left={item.center}
+              right={`${item.aiUsers} 人`}
+              sub={`共 ${item.totalPeople} 人，導入率 ${item.totalPeople ? Math.round((item.aiUsers / item.totalPeople) * 100) : 0}%`}
+              tone="#2563eb"
+            />
+          ))}
+        </ListCard>
+
+        <ListCard
+          title="高成本工具"
+          subtitle="目前月費支出最高的工具"
+          actionLabel="查看費用報表"
           onAction={() => onNav('reports')}
         >
           {topCostTools.map((tool) => (
@@ -221,15 +255,17 @@ export default function Dashboard({ onNav }) {
               key={tool.id}
               left={toolName(tool)}
               right={`${ntd(tool.monthlyCost)} / 月`}
-              sub={`使用 ${tool.usedSeats} 人，計價 ${tool.chargedSeats} 席`}
+              sub={`使用 ${tool.usedSeats} 人，計費 ${tool.chargedSeats} 席`}
             />
           ))}
         </ListCard>
+      </div>
 
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <ListCard
-          title="近期到期清單"
-          subtitle="用於追蹤近期需要續約或調整的授權"
-          actionLabel="前往報表"
+          title="近期到期項目"
+          subtitle="近 2 個月內需要續約或調整的人員與工具"
+          actionLabel="查看費用報表"
           onAction={() => onNav('reports')}
         >
           {urgentExpiringItems.length > 0 ? urgentExpiringItems.map(({ person, dept, tool, entry, expired }) => (
@@ -237,18 +273,16 @@ export default function Dashboard({ onNav }) {
               key={`${person.id}-${tool.id}-${entry.end}`}
               left={`${person.name} / ${toolName(tool)}`}
               right={entry.end}
-              sub={`${dept.name}${expired ? '，已逾期' : '，即將到期'}`}
+              sub={`${dept.name}${expired ? '，已到期' : '，即將到期'}`}
               tone={expired ? '#ef4444' : '#f59e0b'}
             />
-          )) : <EmptyHint text="近 2 個月沒有到期授權。" />}
+          )) : <EmptyHint text="近 2 個月沒有到期項目" />}
         </ListCard>
-      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <ListCard
-          title="閒置授權清單"
-          subtitle="用於盤點可再分配或可檢討的授權席次"
-          actionLabel="看工具頁"
+          title="閒置與重度使用觀察"
+          subtitle="一邊看閒置授權，一邊看多工具使用者"
+          actionLabel="查看工具管理"
           onAction={() => onNav('tools')}
         >
           {idleTools.length > 0 ? idleTools.map((tool) => (
@@ -256,30 +290,32 @@ export default function Dashboard({ onNav }) {
               key={tool.id}
               left={toolName(tool)}
               right={`閒置 ${tool.idleSeats} 席`}
-              sub={`已購 ${tool.seats} 席，目前使用 ${tool.usedSeats} 人`}
+              sub={`已購買 ${tool.seats} 席，目前使用 ${tool.usedSeats} 人`}
               tone="#f59e0b"
             />
-          )) : <EmptyHint text="目前沒有閒置授權。" />}
-        </ListCard>
+          )) : (
+            <EmptyHint text="目前沒有閒置授權" />
+          )}
 
-        <ListCard
-          title="多工具使用者"
-          subtitle="適合拿來談工具重疊與整併策略"
-          actionLabel="看人員頁"
-          onAction={() => onNav('personnel')}
-        >
-          {multiToolPeople.length > 0 ? multiToolPeople.map(({ department, person, activeTools }) => (
-            <ListRow
-              key={person.id}
-              left={person.name}
-              right={`${activeTools.length} 項工具`}
-              sub={`${department.name}：${activeTools.slice(0, 3).map((tool) => {
-                const matchedTool = tools.find((item) => item.id === tool.toolId);
-                return matchedTool ? toolName(matchedTool) : tool.toolId;
-              }).join('、')}`}
-              tone="#7c3aed"
-            />
-          )) : <EmptyHint text="目前沒有多工具使用者。" />}
+          {multiToolPeople.length > 0 && (
+            <div style={{ marginTop: 4, paddingTop: 12, borderTop: '1px dashed var(--border)' }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>多工具使用者</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {multiToolPeople.map(({ department, person, activeTools }) => (
+                  <ListRow
+                    key={person.id}
+                    left={person.name}
+                    right={`${activeTools.length} 項工具`}
+                    sub={`${department.name}，${activeTools.slice(0, 3).map((tool) => {
+                      const matchedTool = tools.find((item) => item.id === tool.toolId);
+                      return matchedTool ? toolName(matchedTool) : tool.toolId;
+                    }).join('、')}`}
+                    tone="#7c3aed"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </ListCard>
       </div>
     </div>
