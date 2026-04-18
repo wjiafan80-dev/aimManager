@@ -58,6 +58,9 @@ export default function Sidebar({ activePage, onNav, collapsed, onToggle }) {
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
             匯率 1 USD = {data.settings.usd_to_ntd} NTD
           </div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>
+            v2.1.0
+          </div>
         </div>
       )}
     </aside>
