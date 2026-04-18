@@ -149,15 +149,15 @@ export default function Dashboard({ onNav }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 280 }}>
             <div style={{ fontSize: 12, letterSpacing: '0.08em', color: '#2563eb', fontWeight: 800, marginBottom: 8 }}>
-              AI 工具管理總覽
+              AI 工具管理系統
             </div>
             <h2 style={{ fontSize: 30, lineHeight: 1.25, marginBottom: 10 }}>
-              先看人數、花費、閒置與到期，
+              AI 工具使用、人數、授權與費用
               <br />
-              主管一眼就能掌握目前導入狀況
+              統一管理與檢視
             </h2>
             <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.7, maxWidth: 700, margin: 0 }}>
-              這裡整理目前實際使用 AI 工具的人數、授權使用情況、每月與每年花費，以及近期到期與閒置風險，方便快速判讀下一步要優先調整哪一塊。
+              本系統提供 AI 工具使用人數、授權配置、費用統計、到期提醒與閒置狀況的集中檢視，作為日常管理與採購決策依據。
             </p>
           </div>
 
