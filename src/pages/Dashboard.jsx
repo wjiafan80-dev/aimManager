@@ -176,21 +176,6 @@ export default function Dashboard({ onNav }) {
         />
       </div>
 
-      <div className="quick-actions" style={{ marginBottom: 20 }}>
-        <button className="quick-btn" onClick={() => onNav('reports')}>
-          <QuickIcon icon="report" />
-          查看費用報表
-        </button>
-        <button className="quick-btn" onClick={() => onNav('personnel')}>
-          <QuickIcon icon="people" />
-          查看人員使用狀況
-        </button>
-        <button className="quick-btn" onClick={() => onNav('tools')}>
-          <QuickIcon icon="tools" />
-          查看工具與授權
-        </button>
-      </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: 20, marginBottom: 20 }}>
         <InsightCard
           title="本週管理重點"
