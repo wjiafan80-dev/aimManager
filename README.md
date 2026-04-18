@@ -1,16 +1,30 @@
-# React + Vite
+# AI 工具管理系統
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+用來集中管理 AI 工具授權、使用人員、成本報表與單位成熟度，適合做內部治理與主管簡報展示。
 
-Currently, two official plugins are available:
+## 目前重點
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 首頁直接呈現主管最關心的指標與風險
+- 報表頁補上高成本工具、閒置授權、近期到期清單
+- 內建展示資料模式，正式資料失敗時仍可 demo
 
-## React Compiler
+## 開發
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+## 環境變數
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+建立 `.env` 並填入：
+
+```bash
+VITE_GAS_URL=你的 Google Apps Script Web App URL
+VITE_GOOGLE_CLIENT_ID=你的 Google OAuth Client ID
+```
+
+## Demo 建議
+
+- 明天對主管展示時，優先看 `儀表板`、`費用報表`、`AI 成熟度評估`
+- 如果正式資料一時載入失敗，可直接切換成 `展示資料`

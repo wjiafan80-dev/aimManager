@@ -1,5 +1,4 @@
 import { useApp } from '../../context/AppContext.jsx';
-import { GoogleLogin } from '@react-oauth/google';
 
 const PAGE_TITLES = {
   dashboard: '儀表板',
@@ -12,7 +11,7 @@ const PAGE_TITLES = {
 };
 
 export default function Topbar({ activePage, onNav, actions, onMenuToggle }) {
-  const { isAdmin, logout, loadData, loading } = useApp();
+  const { isAdmin, logout, loadData, loadDemoData, loading, dataSource } = useApp();
 
   return (
     <header className="topbar">
@@ -29,8 +28,16 @@ export default function Topbar({ activePage, onNav, actions, onMenuToggle }) {
         {actions}
 
         <button
+          className={`btn btn-sm ${dataSource === 'demo' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => loadDemoData()}
+          title="切換為展示資料"
+        >
+          展示資料
+        </button>
+
+        <button
           className="btn btn-ghost btn-icon"
-          onClick={loadData}
+          onClick={() => loadData()}
           disabled={loading}
           title="重新整理"
         >
