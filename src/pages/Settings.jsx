@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useApp } from '../context/AppContext.jsx';
-import appPackage from '../../package.json';
 
 export default function Settings() {
   const { data, loading, isAdmin, onGoogleLogin, logout, saveSettings } = useApp();
@@ -97,7 +96,7 @@ export default function Settings() {
           <span className="card-title">關於系統</span>
         </div>
         <div style={{ padding: '16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.8 }}>
-          <p>AI 工具管理系統 v{appPackage.version}</p>
+          <p>AI 工具管理系統 v{__APP_VERSION__}</p>
           <p>資料儲存於 Google Sheets，後端由 Google Apps Script 提供。</p>
           <p>目前畫面已統一使用台幣顯示費用，方便直接做管理與採購判讀。</p>
         </div>
