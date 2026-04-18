@@ -51,7 +51,7 @@ export default function Sidebar({ activePage, onNav, collapsed, onToggle }) {
 
       {!collapsed && data && (
         <div className="sb-footer">
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>目前每月費用</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>本月總費用</div>
           <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--primary)' }}>
             NT${Math.round(monthlyTotal).toLocaleString()}
           </div>
@@ -59,7 +59,7 @@ export default function Sidebar({ activePage, onNav, collapsed, onToggle }) {
             匯率 1 USD = {data.settings.usd_to_ntd} NTD
           </div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>
-            v2.1.3
+            v2.1.2
           </div>
         </div>
       )}

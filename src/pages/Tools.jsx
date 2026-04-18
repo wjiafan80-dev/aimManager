@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Line } from 'react-chartjs-2';
+import { Chart, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
+import Modal from '../components/common/Modal.jsx';
 import SaveBtn from '../components/common/SaveBtn.jsx';
 import { useApp } from '../context/AppContext.jsx';
 import {
@@ -12,7 +15,8 @@ import {
 } from '../utils/calc.js';
 import { ntd, toolName, uid } from '../utils/format.js';
 import { today, ym } from '../utils/date.js';
-import Modal from '../components/common/Modal.jsx';
+
+Chart.register(CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend);
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6', '#3b82f6', '#a855f7'];
 const EMPTY_PURCHASE_ITEM = { toolId: '', quantity: 1 };
@@ -70,7 +74,7 @@ function getEditableToolForm(tool) {
 
 export default function Tools({ autoAction }) {
   const { data, isAdmin, saveTool, deleteTool, saveLog, deleteLog } = useApp();
-  const [toolDrawer, setToolDrawer] = useState(null);
+  const [toolModal, setToolModal] = useState(null);
   const [logModal, setLogModal] = useState(null);
   const [logForm, setLogForm] = useState(EMPTY_LOG);
   const [form, setForm] = useState(EMPTY_TOOL);
@@ -85,28 +89,24 @@ export default function Tools({ autoAction }) {
   useEffect(() => {
     if (autoAction === 'new-tool') {
       setForm({ ...EMPTY_TOOL, color: COLORS[tools.length % COLORS.length] });
-      setToolDrawer('new');
+      setToolModal('new');
     }
   }, [autoAction, tools.length]);
 
   function openNew() {
     setForm({ ...EMPTY_TOOL, color: COLORS[tools.length % COLORS.length] });
-    setToolDrawer('new');
+    setToolModal('new');
   }
 
   function openEdit(tool) {
     setForm(getEditableToolForm(tool));
-    setToolDrawer(tool);
-  }
-
-  function closeDrawer() {
-    setToolDrawer(null);
+    setToolModal(tool);
   }
 
   async function handleSaveTool() {
     if (!form.name.trim()) return;
 
-    const isNew = toolDrawer === 'new';
+    const isNew = toolModal === 'new';
     const pricing = getFormPricing(form);
     const toolData = {
       ...form,
@@ -129,17 +129,17 @@ export default function Tools({ autoAction }) {
     let logEntry = null;
     if (isNew && toolData.seats > 0) {
       logEntry = { id: uid(), ts: today(), month: ym(), toolId: null, delta: toolData.seats, notes: '初購' };
-    } else if (!isNew && parseInt(form.seats, 10) !== toolDrawer.seats && toolData.seats > 0) {
-      const delta = toolData.seats - (toolDrawer.seats || 0);
+    } else if (!isNew && parseInt(form.seats, 10) !== toolModal.seats && toolData.seats > 0) {
+      const delta = toolData.seats - (toolModal.seats || 0);
       logEntry = { id: uid(), ts: today(), month: ym(), toolId: form.id, delta, notes: delta > 0 ? '增購' : '減少' };
     }
 
     const result = await saveTool(toolData, logEntry);
-    if (result) closeDrawer();
+    if (result) setToolModal(null);
   }
 
   async function handleDeleteTool(id) {
-    if (!confirm('確定刪除此工具？相關採購與授權資料也會一併移除。')) return;
+    if (!confirm('確定刪除此工具？相關授權紀錄也會一併移除。')) return;
     await deleteTool(id);
   }
 
@@ -162,16 +162,41 @@ export default function Tools({ autoAction }) {
     setLogModal(null);
   }
 
+  const filteredLog = logFilter ? log.filter(item => item.toolId === logFilter) : log;
+  const months = [...new Set(filteredLog.map(item => item.month))].sort();
+  const toolsForChart = logFilter ? tools.filter(item => item.id === logFilter) : tools;
+  const chartData = {
+    labels: months,
+    datasets: toolsForChart.map(tool => {
+      let cumulative = 0;
+      return {
+        label: toolName(tool),
+        borderColor: tool.color,
+        backgroundColor: `${tool.color}22`,
+        data: months.map(month => {
+          filteredLog
+            .filter(item => item.toolId === tool.id && item.month === month)
+            .forEach(item => {
+              cumulative += item.delta;
+            });
+          return cumulative;
+        }),
+        tension: 0.3,
+        fill: false,
+      };
+    }),
+  };
+
   const formPricing = getFormPricing(form);
   const annualListTotal = tools.reduce((sum, tool) => {
     const basis = tool.seats || toolUserCount(tool.id, departments);
     return sum + toolAnnualListPriceNTD(tool, usdRate) * basis;
   }, 0);
-  const annualActualTotal = tools.reduce((sum, tool) => {
+  const annualDiscountedTotal = tools.reduce((sum, tool) => {
     const basis = tool.seats || toolUserCount(tool.id, departments);
     return sum + toolAnnualNTD(tool, usdRate) * basis;
   }, 0);
-  const annualDiscountTotal = Math.max(0, annualListTotal - annualActualTotal);
+  const annualSavings = Math.max(0, annualListTotal - annualDiscountedTotal);
 
   const purchaseRows = purchaseItems.map((item, index) => {
     const tool = tools.find(entry => entry.id === item.toolId);
@@ -183,32 +208,31 @@ export default function Tools({ autoAction }) {
         tool: null,
         quantity: 0,
         annualList: 0,
-        annualActual: 0,
-        monthlyActual: 0,
+        annualDiscounted: 0,
+        monthlyDiscounted: 0,
         annualDiscount: 0,
       };
     }
 
     const annualList = toolAnnualListPriceNTD(tool, usdRate) * quantity;
-    const annualActual = toolAnnualNTD(tool, usdRate) * quantity;
-    const monthlyActual = toolMonthlyNTD(tool, usdRate) * quantity;
+    const annualDiscounted = toolAnnualNTD(tool, usdRate) * quantity;
+    const monthlyDiscounted = toolMonthlyNTD(tool, usdRate) * quantity;
 
     return {
       index,
       tool,
       quantity,
       annualList,
-      annualActual,
-      monthlyActual,
-      annualDiscount: Math.max(0, annualList - annualActual),
+      annualDiscounted,
+      monthlyDiscounted,
+      annualDiscount: Math.max(0, annualList - annualDiscounted),
     };
   });
 
-  const purchaseMonthlyTotal = purchaseRows.reduce((sum, row) => sum + row.monthlyActual, 0);
-  const purchaseAnnualTotal = purchaseRows.reduce((sum, row) => sum + row.annualActual, 0);
-  const purchaseDiscountTotal = purchaseRows.reduce((sum, row) => sum + row.annualDiscount, 0);
-  const futureAnnualActualTotal = annualActualTotal + purchaseAnnualTotal;
-  const futureAnnualDiscountTotal = annualDiscountTotal + purchaseDiscountTotal;
+  const purchaseMonthlyDiscountedTotal = purchaseRows.reduce((sum, row) => sum + row.monthlyDiscounted, 0);
+  const purchaseAnnualDiscountedTotal = purchaseRows.reduce((sum, row) => sum + row.annualDiscounted, 0);
+  const purchaseAnnualSavings = purchaseRows.reduce((sum, row) => sum + row.annualDiscount, 0);
+  const projectedAnnualDiscountedTotal = annualDiscountedTotal + purchaseAnnualDiscountedTotal;
 
   function updatePurchaseItem(index, patch) {
     setPurchaseItems(items => items.map((item, itemIndex) => (
@@ -236,7 +260,7 @@ export default function Tools({ autoAction }) {
     }, new Map());
 
     if (groupedRows.size === 0) return;
-    if (!confirm('確定要把這份試算直接加入已購買授權與採購紀錄嗎？')) return;
+    if (!confirm('確定要將這份試算直接加入授權與採購紀錄嗎？')) return;
 
     for (const { tool, quantity } of groupedRows.values()) {
       await saveTool({
@@ -255,29 +279,84 @@ export default function Tools({ autoAction }) {
     setPurchaseItems([{ ...EMPTY_PURCHASE_ITEM }]);
   }
 
-  const filteredLog = logFilter ? log.filter(item => item.toolId === logFilter) : log;
-
   return (
     <div>
+      {isAdmin && (
+        <div style={{ marginBottom: 16 }}>
+          <button className="btn btn-primary" onClick={openNew}>+ 新增工具</button>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
-        <SummaryCard
-          title="每年實際總金額"
-          subtitle="目前實際支出的年度費用"
-          value={ntd(annualActualTotal)}
-          color="#1d4ed8"
-        />
-        <SummaryCard
-          title="每年折扣金額"
-          subtitle="相較定價每年共省下多少"
-          value={ntd(annualDiscountTotal)}
-          color="#16a34a"
-        />
-        <SummaryCard
-          title="每年定價總金額"
-          subtitle="若完全無折扣時的年度費用"
-          value={ntd(annualListTotal)}
-          color="#475569"
-        />
+        <SummaryCard title="每年總金額原價" value={ntd(annualListTotal)} color="#475569" />
+        <SummaryCard title="每年總金額折扣後價" value={ntd(annualDiscountedTotal)} color="#2563eb" />
+        <SummaryCard title="每年省下總金額" value={ntd(annualSavings)} color="#16a34a" />
+      </div>
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>工具</th>
+                <th>稅金/折扣</th>
+                <th>月費</th>
+                <th>年費</th>
+                <th>月費總計</th>
+                <th>年費總計</th>
+                <th>已發/購買</th>
+                {isAdmin && <th>操作</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {tools.map(tool => {
+                const users = toolUserCount(tool.id, departments);
+                const monthlyCost = toolMonthlyNTD(tool, usdRate);
+                const annualCost = toolAnnualNTD(tool, usdRate);
+                const basis = tool.seats || users;
+                const idleSeats = tool.seats ? Math.max(0, tool.seats - users) : 0;
+                const pricing = normalizeToolPricing(tool);
+
+                return (
+                  <tr key={tool.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: tool.color, flexShrink: 0 }} />
+                        <span style={{ fontWeight: 600 }}>{toolName(tool)}</span>
+                      </div>
+                    </td>
+                    <td style={{ fontSize: 12, lineHeight: 1.5 }}>
+                      <div>稅 {pricing.taxRate}%</div>
+                      <div style={{ color: 'var(--muted)' }}>折扣 {pricing.discountPercent}%</div>
+                    </td>
+                    <td>{tool.monthly ? ntd(monthlyCost) : '—'}</td>
+                    <td>{tool.annual ? ntd(annualCost) : '—'}</td>
+                    <td style={{ fontWeight: 700 }}>{ntd(monthlyCost * basis)}</td>
+                    <td style={{ fontWeight: 700 }}>{ntd(annualCost * basis)}</td>
+                    <td>
+                      <span style={{ color: users > (tool.seats || Infinity) ? '#ef4444' : undefined }}>{users}</span>
+                      {tool.seats > 0 && (
+                        <span style={{ color: 'var(--muted)' }}>
+                          {' '} / {tool.seats}
+                          {idleSeats > 0 && <span style={{ color: '#f59e0b', marginLeft: 4 }}>(閒置 {idleSeats})</span>}
+                        </span>
+                      )}
+                    </td>
+                    {isAdmin && (
+                      <td>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => openEdit(tool)}>編輯</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => openLog(tool.id)}>+ 採購</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => handleDeleteTool(tool.id)}>刪除</button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
@@ -285,18 +364,18 @@ export default function Tools({ autoAction }) {
           <div>
             <span className="card-title">預計新購買試算</span>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-              先試算新增授權的成本，再決定是否直接轉成已購買授權。
+              先選工具與套數，直接看新增費用，也可以一鍵轉成授權採購。
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {isAdmin && <button className="btn btn-ghost btn-sm" onClick={applyPurchasePlan}>一鍵添加授權</button>}
-            {isAdmin && <button className="btn btn-primary btn-sm" onClick={openNew}>新增工具</button>}
+            <button className="btn btn-primary btn-sm" onClick={addPurchaseItem}>+ 新增工具</button>
           </div>
         </div>
 
         <div style={{ padding: '12px 16px 16px', display: 'grid', gap: 16 }}>
           <div style={{ overflowX: 'auto' }}>
-            <div style={{ minWidth: 880 }}>
+            <div style={{ minWidth: 860 }}>
               <div
                 style={{
                   display: 'grid',
@@ -351,8 +430,8 @@ export default function Tools({ autoAction }) {
                       placeholder="1"
                     />
 
-                    <div style={{ fontWeight: 700 }}>{ntd(row.monthlyActual)}</div>
-                    <div style={{ fontWeight: 700 }}>{ntd(row.annualActual)}</div>
+                    <div style={{ fontWeight: 700 }}>{ntd(row.monthlyDiscounted)}</div>
+                    <div style={{ fontWeight: 700 }}>{ntd(row.annualDiscounted)}</div>
                     <div style={{ fontWeight: 700, color: '#16a34a' }}>{ntd(row.annualDiscount)}</div>
 
                     <button className="btn btn-ghost btn-sm" onClick={() => removePurchaseItem(index)}>移除</button>
@@ -363,65 +442,15 @@ export default function Tools({ autoAction }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <ReadableMetric label="每月新增費用" value={ntd(purchaseMonthlyTotal)} emphasis="#2563eb" />
-            <ReadableMetric label="每年新增費用" value={ntd(purchaseAnnualTotal)} emphasis="#2563eb" />
-            <ReadableMetric label="未來每年總金額" value={ntd(futureAnnualActualTotal)} emphasis="#1d4ed8" />
-            <ReadableMetric label="未來每年省下總金額" value={ntd(futureAnnualDiscountTotal)} emphasis="#16a34a" />
+            <ReadableMetric label="每月新增費用" value={ntd(purchaseMonthlyDiscountedTotal)} emphasis="#2563eb" />
+            <ReadableMetric label="每年新增費用" value={ntd(purchaseAnnualDiscountedTotal)} emphasis="#2563eb" />
+            <ReadableMetric label="未來每年總金額" value={ntd(projectedAnnualDiscountedTotal)} emphasis="#1d4ed8" />
+            <ReadableMetric label="未來每年省下總金額" value={ntd(annualSavings + purchaseAnnualSavings)} emphasis="#16a34a" />
           </div>
         </div>
       </div>
 
-      <div className="card" style={{ display: 'none' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>工具</th>
-                <th>稅金/折扣</th>
-                <th>月費</th>
-                <th>年費</th>
-                <th>月費總計</th>
-                <th>年費總計</th>
-                <th>已發/購買</th>
-                {isAdmin && <th>操作</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {tools.map(tool => {
-                const users = toolUserCount(tool.id, departments);
-                const monthlyCost = toolMonthlyNTD(tool, usdRate);
-                const annualCost = toolAnnualNTD(tool, usdRate);
-                const basis = tool.seats || users;
-                const idleSeats = tool.seats ? Math.max(0, tool.seats - users) : 0;
-                const pricing = normalizeToolPricing(tool);
-
-                return (
-                  <tr key={tool.id}>
-                    <td>{toolName(tool)}</td>
-                    <td>稅 {pricing.taxRate}% / 折扣 {pricing.discountPercent}%</td>
-                    <td>{tool.monthly ? ntd(monthlyCost) : '—'}</td>
-                    <td>{tool.annual ? ntd(annualCost) : '—'}</td>
-                    <td>{ntd(monthlyCost * basis)}</td>
-                    <td>{ntd(annualCost * basis)}</td>
-                    <td>{users} / {tool.seats || 0}{idleSeats > 0 ? ` (閒置 ${idleSeats})` : ''}</td>
-                    {isAdmin && (
-                      <td>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => openEdit(tool)}>編輯</button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => openLog(tool.id)}>+ 採購</button>
-                          <button className="btn btn-danger btn-sm" onClick={() => handleDeleteTool(tool.id)}>刪除</button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="card" style={{ display: 'none' }}>
+      <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
           <span className="card-title">採購紀錄</span>
           <select className="input" style={{ width: 180, fontSize: 12 }} value={logFilter} onChange={e => setLogFilter(e.target.value)}>
@@ -447,10 +476,12 @@ export default function Tools({ autoAction }) {
                 return (
                   <tr key={item.id}>
                     <td>{item.month}</td>
-                    <td>{tool ? toolName(tool) : '—'}</td>
-                    <td>{item.delta > 0 ? '+' : ''}{item.delta}</td>
-                    <td>{item.notes || '—'}</td>
-                    <td>{item.ts || '—'}</td>
+                    <td>{tool ? <span className="tool-chip" style={{ background: `${tool.color}22`, color: tool.color }}>{toolName(tool)}</span> : '—'}</td>
+                    <td style={{ color: item.delta > 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                      {item.delta > 0 ? '+' : ''}{item.delta}
+                    </td>
+                    <td style={{ color: 'var(--muted)' }}>{item.notes || '—'}</td>
+                    <td style={{ color: 'var(--muted)', fontSize: 12 }}>{item.ts || '—'}</td>
                     {isAdmin && (
                       <td>
                         <button className="btn btn-danger btn-sm" onClick={() => { if (confirm('確定刪除此採購紀錄？')) deleteLog(item.id); }}>刪除</button>
@@ -459,148 +490,146 @@ export default function Tools({ autoAction }) {
                   </tr>
                 );
               })}
+              {filteredLog.length === 0 && (
+                <tr>
+                  <td colSpan={isAdmin ? 6 : 5} style={{ textAlign: 'center', color: 'var(--muted)' }}>無採購紀錄</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {!!toolDrawer && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.24)',
-            zIndex: 40,
-            display: 'flex',
-            justifyContent: 'flex-end',
-          }}
-          onClick={closeDrawer}
-        >
-          <div
-            style={{
-              width: 'min(560px, 100vw)',
-              height: '100%',
-              background: '#ffffff',
-              boxShadow: '-24px 0 48px rgba(15, 23, 42, 0.16)',
-              padding: 24,
-              overflowY: 'auto',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{toolDrawer === 'new' ? '新增 AI 工具' : '編輯 AI 工具'}</div>
-                <div style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>
-                  在這裡維護工具定價、折扣、稅金和已購買授權數。
-                </div>
-              </div>
-              <button className="btn btn-ghost" onClick={closeDrawer}>關閉</button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label className="label">工具名稱 *</label>
-                  <input className="input" value={form.name} onChange={e => setForm(current => ({ ...current, name: e.target.value }))} placeholder="例：ChatGPT" />
-                </div>
-                <div>
-                  <label className="label">方案</label>
-                  <input className="input" value={form.plan} onChange={e => setForm(current => ({ ...current, plan: e.target.value }))} placeholder="例：Team" />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
-                <div>
-                  <label className="label">幣別</label>
-                  <select className="input" value={form.currency} onChange={e => setForm(current => ({ ...current, currency: e.target.value }))}>
-                    <option value="USD">USD</option>
-                    <option value="NTD">NTD</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">計價方式</label>
-                  <select className="input" value={form.pricingMode} onChange={e => setForm(current => ({ ...current, pricingMode: e.target.value, listPrice: '' }))}>
-                    <option value="monthly">月費</option>
-                    <option value="annual">年費</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">{form.pricingMode === 'monthly' ? '月費定價' : '年費定價'}</label>
-                  <input
-                    className="input"
-                    type="number"
-                    value={form.listPrice}
-                    onChange={e => setForm(current => ({ ...current, listPrice: e.target.value }))}
-                    placeholder={form.pricingMode === 'monthly' ? '請輸入月費' : '請輸入年費'}
-                  />
-                </div>
-                <div>
-                  <label className="label">已發/購買</label>
-                  <input className="input" type="number" value={form.seats} onChange={e => setForm(current => ({ ...current, seats: e.target.value }))} placeholder="0" />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
-                <div>
-                  <label className="label">稅金 (%)</label>
-                  <input className="input" type="number" step="0.1" value={form.taxRate} onChange={e => setForm(current => ({ ...current, taxRate: e.target.value }))} placeholder="0" />
-                </div>
-                <div>
-                  <label className="label">折扣 (%)</label>
-                  <input className="input" type="number" step="0.1" value={form.discountPercent} onChange={e => setForm(current => ({ ...current, discountPercent: e.target.value }))} placeholder="0" />
-                </div>
-                <div>
-                  <label className="label">月費</label>
-                  <input className="input" type="number" value={formPricing.displayMonthly} readOnly style={{ background: form.pricingMode === 'monthly' ? 'var(--card-bg)' : 'var(--bg-subtle)' }} />
-                </div>
-                <div>
-                  <label className="label">年費</label>
-                  <input className="input" type="number" value={formPricing.displayAnnual} readOnly style={{ background: form.pricingMode === 'annual' ? 'var(--card-bg)' : 'var(--bg-subtle)' }} />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label className="label">顏色標籤</label>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                    {COLORS.map(color => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => setForm(current => ({ ...current, color }))}
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: '50%',
-                          background: color,
-                          border: form.color === color ? '3px solid #1e293b' : '2px solid transparent',
-                          cursor: 'pointer',
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.7, alignSelf: 'end' }}>
-                  只要輸入月費或年費其中一個定價，系統就會自動反推另一個欄位。
-                </div>
-              </div>
-
-              <div>
-                <label className="label">備註</label>
-                <textarea className="input" value={form.notes} onChange={e => setForm(current => ({ ...current, notes: e.target.value }))} rows={3} style={{ resize: 'vertical' }} />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-              {toolDrawer !== 'new' && (
-                <button className="btn btn-danger" onClick={() => handleDeleteTool(form.id)}>刪除工具</button>
-              )}
-              <button className="btn btn-ghost" onClick={closeDrawer}>取消</button>
-              <SaveBtn onClick={handleSaveTool} />
-            </div>
+      {months.length > 0 && (
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">授權席數成長趨勢</span>
+          </div>
+          <div style={{ padding: 16 }}>
+            <Line
+              data={chartData}
+              options={{
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+              }}
+            />
           </div>
         </div>
       )}
+
+      <Modal
+        show={!!toolModal}
+        onClose={() => setToolModal(null)}
+        title={toolModal === 'new' ? '新增 AI 工具' : '編輯工具'}
+        footer={(
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button className="btn btn-ghost" onClick={() => setToolModal(null)}>取消</button>
+            <SaveBtn onClick={handleSaveTool} />
+          </div>
+        )}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="label">工具名稱 *</label>
+              <input className="input" value={form.name} onChange={e => setForm(current => ({ ...current, name: e.target.value }))} placeholder="例：ChatGPT" />
+            </div>
+            <div>
+              <label className="label">方案</label>
+              <input className="input" value={form.plan} onChange={e => setForm(current => ({ ...current, plan: e.target.value }))} placeholder="例：Plus" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="label">幣別</label>
+              <select className="input" value={form.currency} onChange={e => setForm(current => ({ ...current, currency: e.target.value }))}>
+                <option value="USD">USD</option>
+                <option value="NTD">NTD</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="label">計價方式</label>
+              <select className="input" value={form.pricingMode} onChange={e => setForm(current => ({ ...current, pricingMode: e.target.value, listPrice: '' }))}>
+                <option value="monthly">月費</option>
+                <option value="annual">年費</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="label">{form.pricingMode === 'monthly' ? '月費定價' : '年費定價'}</label>
+              <input
+                className="input"
+                type="number"
+                value={form.listPrice}
+                onChange={e => setForm(current => ({ ...current, listPrice: e.target.value }))}
+                placeholder={form.pricingMode === 'monthly' ? '請輸入月費' : '請輸入年費'}
+              />
+            </div>
+
+            <div>
+              <label className="label">已發/購買</label>
+              <input className="input" type="number" value={form.seats} onChange={e => setForm(current => ({ ...current, seats: e.target.value }))} placeholder="0" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="label">稅金 (%)</label>
+              <input className="input" type="number" step="0.1" value={form.taxRate} onChange={e => setForm(current => ({ ...current, taxRate: e.target.value }))} placeholder="0" />
+            </div>
+
+            <div>
+              <label className="label">折扣 (%)</label>
+              <input className="input" type="number" step="0.1" value={form.discountPercent} onChange={e => setForm(current => ({ ...current, discountPercent: e.target.value }))} placeholder="0" />
+            </div>
+
+            <div>
+              <label className="label">月費</label>
+              <input className="input" type="number" value={formPricing.displayMonthly} readOnly style={{ background: form.pricingMode === 'monthly' ? 'var(--card-bg)' : 'var(--bg-subtle)' }} />
+            </div>
+
+            <div>
+              <label className="label">年費</label>
+              <input className="input" type="number" value={formPricing.displayAnnual} readOnly style={{ background: form.pricingMode === 'annual' ? 'var(--card-bg)' : 'var(--bg-subtle)' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="label">顏色標籤</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                {COLORS.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setForm(current => ({ ...current, color }))}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      background: color,
+                      border: form.color === color ? '3px solid #1e293b' : '2px solid transparent',
+                      cursor: 'pointer',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.7, alignSelf: 'end' }}>
+              月費或年費只需輸入一個定價，系統會套用稅金與折扣後，自動反推另一個欄位。
+            </div>
+          </div>
+
+          <div>
+            <label className="label">備註</label>
+            <textarea className="input" value={form.notes} onChange={e => setForm(current => ({ ...current, notes: e.target.value }))} rows={2} style={{ resize: 'vertical' }} />
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         show={!!logModal}
@@ -633,12 +662,11 @@ export default function Tools({ autoAction }) {
   );
 }
 
-function SummaryCard({ title, subtitle, value, color }) {
+function SummaryCard({ title, value, color }) {
   return (
-    <div className="card" style={{ padding: '18px 20px' }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>{title}</div>
-      <div style={{ fontSize: 28, fontWeight: 800, color, marginBottom: 8 }}>{value}</div>
-      <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>{subtitle}</div>
+    <div className="card" style={{ padding: '16px 20px' }}>
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>{title}</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color }}>{value}</div>
     </div>
   );
 }
@@ -651,14 +679,14 @@ function ReadableMetric({ label, value, emphasis }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 12,
-        padding: '12px 14px',
-        borderRadius: 12,
+        padding: '10px 12px',
+        borderRadius: 10,
         background: 'var(--bg-subtle)',
         border: '1px solid var(--border)',
       }}
     >
-      <span style={{ fontSize: 13, color: 'var(--muted)' }}>{label}</span>
-      <span style={{ fontSize: 20, fontWeight: 800, color: emphasis || 'var(--text)' }}>{value}</span>
+      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{label}</span>
+      <span style={{ fontSize: 18, fontWeight: 800, color: emphasis || 'var(--text)' }}>{value}</span>
     </div>
   );
 }
