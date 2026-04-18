@@ -180,7 +180,7 @@ export default function Dashboard({ onNav }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: 20, marginBottom: 20 }}>
         <InsightCard
           title="本週管理重點"
-          subtitle="先看最需要主管關注的 3 件事情"
+          subtitle=""
         >
           <InsightRow
             title="目前月費最高工具"
