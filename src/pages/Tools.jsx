@@ -80,6 +80,7 @@ export default function Tools({ autoAction }) {
   const [form, setForm] = useState(EMPTY_TOOL);
   const [logFilter, setLogFilter] = useState('');
   const [purchaseItems, setPurchaseItems] = useState([EMPTY_PURCHASE_ITEM]);
+  const [purchasePlannerOpen, setPurchasePlannerOpen] = useState(false);
 
   if (!data) return null;
 
@@ -364,90 +365,95 @@ export default function Tools({ autoAction }) {
           <div>
             <span className="card-title">預計新購買試算</span>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-              先選工具與套數，直接看新增費用，也可以一鍵轉成授權採購。
+              先選工具與套數，下面會幫你估算新增費用。
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setPurchasePlannerOpen(open => !open)}>
+              {purchasePlannerOpen ? '隱藏試算內容' : '展開試算內容'}
+            </button>
             {isAdmin && <button className="btn btn-ghost btn-sm" onClick={applyPurchasePlan}>一鍵添加授權</button>}
             <button className="btn btn-primary btn-sm" onClick={addPurchaseItem}>+ 新增工具</button>
           </div>
         </div>
 
-        <div style={{ padding: '12px 16px 16px', display: 'grid', gap: 16 }}>
-          <div style={{ overflowX: 'auto' }}>
-            <div style={{ minWidth: 860 }}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(240px, 2fr) 96px 140px 140px 140px 72px',
-                  gap: 10,
-                  padding: '0 0 8px',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--muted)',
-                }}
-              >
-                <div>工具</div>
-                <div>套數</div>
-                <div>總月費</div>
-                <div>總年費</div>
-                <div>年總折扣</div>
-                <div></div>
-              </div>
+        {purchasePlannerOpen && (
+          <div style={{ padding: '12px 16px 16px', display: 'grid', gap: 16 }}>
+            <div style={{ overflowX: 'auto' }}>
+              <div style={{ minWidth: 860 }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(240px, 2fr) 96px 140px 140px 140px 72px',
+                    gap: 10,
+                    padding: '0 0 8px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: 'var(--muted)',
+                  }}
+                >
+                  <div>工具</div>
+                  <div>套數</div>
+                  <div>總月費</div>
+                  <div>總年費</div>
+                  <div>年總折扣</div>
+                  <div></div>
+                </div>
 
-              <div style={{ display: 'grid', gap: 10 }}>
-                {purchaseRows.map((row, index) => (
-                  <div
-                    key={`purchase-${index}`}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'minmax(240px, 2fr) 96px 140px 140px 140px 72px',
-                      gap: 10,
-                      alignItems: 'center',
-                      padding: 12,
-                      border: '1px solid var(--border)',
-                      borderRadius: 12,
-                      background: 'var(--card-bg)',
-                    }}
-                  >
-                    <select
-                      className="input"
-                      value={purchaseItems[index].toolId}
-                      onChange={e => updatePurchaseItem(index, { toolId: e.target.value })}
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {purchaseRows.map((row, index) => (
+                    <div
+                      key={`purchase-${index}`}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(240px, 2fr) 96px 140px 140px 140px 72px',
+                        gap: 10,
+                        alignItems: 'center',
+                        padding: 12,
+                        border: '1px solid var(--border)',
+                        borderRadius: 12,
+                        background: 'var(--card-bg)',
+                      }}
                     >
-                      <option value="">請選擇工具</option>
-                      {tools.map(tool => (
-                        <option key={tool.id} value={tool.id}>{toolName(tool)}</option>
-                      ))}
-                    </select>
+                      <select
+                        className="input"
+                        value={purchaseItems[index].toolId}
+                        onChange={e => updatePurchaseItem(index, { toolId: e.target.value })}
+                      >
+                        <option value="">請選擇工具</option>
+                        {tools.map(tool => (
+                          <option key={tool.id} value={tool.id}>{toolName(tool)}</option>
+                        ))}
+                      </select>
 
-                    <input
-                      className="input"
-                      type="number"
-                      min="1"
-                      value={purchaseItems[index].quantity}
-                      onChange={e => updatePurchaseItem(index, { quantity: e.target.value })}
-                      placeholder="1"
-                    />
+                      <input
+                        className="input"
+                        type="number"
+                        min="1"
+                        value={purchaseItems[index].quantity}
+                        onChange={e => updatePurchaseItem(index, { quantity: e.target.value })}
+                        placeholder="1"
+                      />
 
-                    <div style={{ fontWeight: 700 }}>{ntd(row.monthlyDiscounted)}</div>
-                    <div style={{ fontWeight: 700 }}>{ntd(row.annualDiscounted)}</div>
-                    <div style={{ fontWeight: 700, color: '#16a34a' }}>{ntd(row.annualDiscount)}</div>
+                      <div style={{ fontWeight: 700 }}>{ntd(row.monthlyDiscounted)}</div>
+                      <div style={{ fontWeight: 700 }}>{ntd(row.annualDiscounted)}</div>
+                      <div style={{ fontWeight: 700, color: '#16a34a' }}>{ntd(row.annualDiscount)}</div>
 
-                    <button className="btn btn-ghost btn-sm" onClick={() => removePurchaseItem(index)}>移除</button>
-                  </div>
-                ))}
+                      <button className="btn btn-ghost btn-sm" onClick={() => removePurchaseItem(index)}>移除</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <ReadableMetric label="每月新增費用" value={ntd(purchaseMonthlyDiscountedTotal)} emphasis="#2563eb" />
-            <ReadableMetric label="每年新增費用" value={ntd(purchaseAnnualDiscountedTotal)} emphasis="#2563eb" />
-            <ReadableMetric label="未來每年總金額" value={ntd(projectedAnnualDiscountedTotal)} emphasis="#1d4ed8" />
-            <ReadableMetric label="未來每年省下總金額" value={ntd(annualSavings + purchaseAnnualSavings)} emphasis="#16a34a" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <ReadableMetric label="每月新增費用" value={ntd(purchaseMonthlyDiscountedTotal)} emphasis="#2563eb" />
+              <ReadableMetric label="每年新增費用" value={ntd(purchaseAnnualDiscountedTotal)} emphasis="#2563eb" />
+              <ReadableMetric label="未來每年總金額" value={ntd(projectedAnnualDiscountedTotal)} emphasis="#1d4ed8" />
+              <ReadableMetric label="未來每年省下總金額" value={ntd(annualSavings + purchaseAnnualSavings)} emphasis="#16a34a" />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
