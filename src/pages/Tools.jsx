@@ -129,7 +129,7 @@ export default function Tools({ autoAction }) {
 
     let logEntry = null;
     if (isNew && toolData.seats > 0) {
-      logEntry = { id: uid(), ts: today(), month: ym(), toolId: null, delta: toolData.seats, notes: '初購' };
+      logEntry = { id: uid(), ts: today(), month: ym(), toolId: null, delta: toolData.seats, notes: '初始購買' };
     } else if (!isNew && parseInt(form.seats, 10) !== toolModal.seats && toolData.seats > 0) {
       const delta = toolData.seats - (toolModal.seats || 0);
       logEntry = { id: uid(), ts: today(), month: ym(), toolId: form.id, delta, notes: delta > 0 ? '增購' : '減少' };
@@ -140,7 +140,7 @@ export default function Tools({ autoAction }) {
   }
 
   async function handleDeleteTool(id) {
-    if (!confirm('確定刪除此工具？相關授權紀錄也會一併移除。')) return;
+    if (!confirm('確定要刪除這個工具嗎？相關紀錄也會一併移除。')) return;
     await deleteTool(id);
   }
 
@@ -261,7 +261,7 @@ export default function Tools({ autoAction }) {
     }, new Map());
 
     if (groupedRows.size === 0) return;
-    if (!confirm('確定要將這份試算直接加入授權與採購紀錄嗎？')) return;
+    if (!confirm('確定要把這份預計新購買試算，直接轉成實際授權數量嗎？')) return;
 
     for (const { tool, quantity } of groupedRows.values()) {
       await saveTool({
@@ -273,7 +273,7 @@ export default function Tools({ autoAction }) {
         month: ym(),
         toolId: tool.id,
         delta: quantity,
-        notes: '一鍵添加授權',
+        notes: '試算轉正式增購',
       });
     }
 
@@ -289,9 +289,24 @@ export default function Tools({ autoAction }) {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
-        <SummaryCard title="每年總金額原價" value={ntd(annualListTotal)} color="#475569" />
-        <SummaryCard title="每年總金額折扣後價" value={ntd(annualDiscountedTotal)} color="#2563eb" />
-        <SummaryCard title="每年省下總金額" value={ntd(annualSavings)} color="#16a34a" />
+        <SummaryCard
+          title="每年實際總金額"
+          subtitle="目前所有已購授權，實際每年支出的總費用"
+          value={ntd(annualDiscountedTotal)}
+          color="#2563eb"
+        />
+        <SummaryCard
+          title="每年折扣金額"
+          subtitle="相較工具定價後，目前每年合計省下的金額"
+          value={ntd(annualSavings)}
+          color="#16a34a"
+        />
+        <SummaryCard
+          title="每年定價總金額"
+          subtitle="未套用折扣前，依原價計算的年度總金額"
+          value={ntd(annualListTotal)}
+          color="#475569"
+        />
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
@@ -300,12 +315,12 @@ export default function Tools({ autoAction }) {
             <thead>
               <tr>
                 <th>工具</th>
-                <th>稅金/折扣</th>
+                <th>稅金 / 折扣</th>
                 <th>月費</th>
                 <th>年費</th>
                 <th>月費總計</th>
                 <th>年費總計</th>
-                <th>已發/購買</th>
+                <th>已發 / 購買</th>
                 {isAdmin && <th>操作</th>}
               </tr>
             </thead>
@@ -347,7 +362,7 @@ export default function Tools({ autoAction }) {
                       <td>
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button className="btn btn-ghost btn-sm" onClick={() => openEdit(tool)}>編輯</button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => openLog(tool.id)}>+ 採購</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => openLog(tool.id)}>+ 新增授權</button>
                           <button className="btn btn-danger btn-sm" onClick={() => handleDeleteTool(tool.id)}>刪除</button>
                         </div>
                       </td>
@@ -365,7 +380,7 @@ export default function Tools({ autoAction }) {
           <div>
             <span className="card-title">預計新購買試算</span>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-              先選工具與套數，下面會幫你估算新增費用。
+              先選工具與套數，直接看新增費用，也可以一鍵轉成授權採購。
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -380,7 +395,7 @@ export default function Tools({ autoAction }) {
         {purchasePlannerOpen && (
           <div style={{ padding: '12px 16px 16px', display: 'grid', gap: 16 }}>
             <div style={{ overflowX: 'auto' }}>
-              <div style={{ minWidth: 860 }}>
+              <div style={{ minWidth: 920 }}>
                 <div
                   style={{
                     display: 'grid',
@@ -490,7 +505,7 @@ export default function Tools({ autoAction }) {
                     <td style={{ color: 'var(--muted)', fontSize: 12 }}>{item.ts || '—'}</td>
                     {isAdmin && (
                       <td>
-                        <button className="btn btn-danger btn-sm" onClick={() => { if (confirm('確定刪除此採購紀錄？')) deleteLog(item.id); }}>刪除</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => { if (confirm('確定要刪除這筆紀錄嗎？')) deleteLog(item.id); }}>刪除</button>
                       </td>
                     )}
                   </tr>
@@ -498,7 +513,7 @@ export default function Tools({ autoAction }) {
               })}
               {filteredLog.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 6 : 5} style={{ textAlign: 'center', color: 'var(--muted)' }}>無採購紀錄</td>
+                  <td colSpan={isAdmin ? 6 : 5} style={{ textAlign: 'center', color: 'var(--muted)' }}>目前沒有紀錄</td>
                 </tr>
               )}
             </tbody>
@@ -509,7 +524,7 @@ export default function Tools({ autoAction }) {
       {months.length > 0 && (
         <div className="card">
           <div className="card-header">
-            <span className="card-title">授權席數成長趨勢</span>
+            <span className="card-title">工具席數變化趨勢</span>
           </div>
           <div style={{ padding: 16 }}>
             <Line
@@ -539,11 +554,11 @@ export default function Tools({ autoAction }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label className="label">工具名稱 *</label>
-              <input className="input" value={form.name} onChange={e => setForm(current => ({ ...current, name: e.target.value }))} placeholder="例：ChatGPT" />
+              <input className="input" value={form.name} onChange={e => setForm(current => ({ ...current, name: e.target.value }))} placeholder="例如 ChatGPT" />
             </div>
             <div>
               <label className="label">方案</label>
-              <input className="input" value={form.plan} onChange={e => setForm(current => ({ ...current, plan: e.target.value }))} placeholder="例：Plus" />
+              <input className="input" value={form.plan} onChange={e => setForm(current => ({ ...current, plan: e.target.value }))} placeholder="例如 Business" />
             </div>
           </div>
 
@@ -557,7 +572,7 @@ export default function Tools({ autoAction }) {
             </div>
 
             <div>
-              <label className="label">計價方式</label>
+              <label className="label">定價輸入方式</label>
               <select className="input" value={form.pricingMode} onChange={e => setForm(current => ({ ...current, pricingMode: e.target.value, listPrice: '' }))}>
                 <option value="monthly">月費</option>
                 <option value="annual">年費</option>
@@ -571,12 +586,12 @@ export default function Tools({ autoAction }) {
                 type="number"
                 value={form.listPrice}
                 onChange={e => setForm(current => ({ ...current, listPrice: e.target.value }))}
-                placeholder={form.pricingMode === 'monthly' ? '請輸入月費' : '請輸入年費'}
+                placeholder={form.pricingMode === 'monthly' ? '輸入每月定價' : '輸入每年定價'}
               />
             </div>
 
             <div>
-              <label className="label">已發/購買</label>
+              <label className="label">已發 / 購買</label>
               <input className="input" type="number" value={form.seats} onChange={e => setForm(current => ({ ...current, seats: e.target.value }))} placeholder="0" />
             </div>
           </div>
@@ -605,7 +620,7 @@ export default function Tools({ autoAction }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label className="label">顏色標籤</label>
+              <label className="label">顏色標記</label>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                 {COLORS.map(color => (
                   <button
@@ -626,7 +641,7 @@ export default function Tools({ autoAction }) {
             </div>
 
             <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.7, alignSelf: 'end' }}>
-              月費或年費只需輸入一個定價，系統會套用稅金與折扣後，自動反推另一個欄位。
+              月費與年費會依你輸入的定價、稅金與折扣自動反推，不需要重複輸入兩次。
             </div>
           </div>
 
@@ -656,11 +671,11 @@ export default function Tools({ autoAction }) {
           </div>
           <div>
             <label className="label">席數變化（正數為增購，負數為減少）</label>
-            <input className="input" type="number" value={logForm.delta} onChange={e => setLogForm(current => ({ ...current, delta: e.target.value }))} placeholder="例：5 或 -2" />
+            <input className="input" type="number" value={logForm.delta} onChange={e => setLogForm(current => ({ ...current, delta: e.target.value }))} placeholder="例如 5 或 -2" />
           </div>
           <div>
             <label className="label">備註</label>
-            <input className="input" value={logForm.notes} onChange={e => setLogForm(current => ({ ...current, notes: e.target.value }))} placeholder="例：追加採購" />
+            <input className="input" value={logForm.notes} onChange={e => setLogForm(current => ({ ...current, notes: e.target.value }))} placeholder="例如 年度增購" />
           </div>
         </div>
       </Modal>
@@ -668,11 +683,16 @@ export default function Tools({ autoAction }) {
   );
 }
 
-function SummaryCard({ title, value, color }) {
+function SummaryCard({ title, subtitle, value, color }) {
   return (
-    <div className="card" style={{ padding: '16px 20px' }}>
-      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>{title}</div>
-      <div style={{ fontSize: 24, fontWeight: 800, color }}>{value}</div>
+    <div className="card" style={{ padding: '18px 20px' }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color, letterSpacing: '-0.02em' }}>{value}</div>
+      {subtitle && (
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10, lineHeight: 1.6 }}>
+          {subtitle}
+        </div>
+      )}
     </div>
   );
 }
