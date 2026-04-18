@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import {
   activePeopleCount,
@@ -57,26 +58,25 @@ function buildMultiToolPeople(departments) {
 }
 
 function buildCenterUsage(departments) {
-  return departments
-    .reduce((map, department) => {
-      const centerName = department.center || department.name || '未分類';
-      const activePeople = (department.people || []).filter((person) => !person.removed);
-      const aiUsers = activePeople.filter((person) =>
-        normTools(person.tools).some((tool) => !tool.revoked),
-      ).length;
+  return [...departments.reduce((map, department) => {
+    const centerName = department.center || department.name || '未分類';
+    const activePeople = (department.people || []).filter((person) => !person.removed);
+    const aiUsers = activePeople.filter((person) =>
+      normTools(person.tools).some((tool) => !tool.revoked),
+    ).length;
 
-      const current = map.get(centerName) || { center: centerName, totalPeople: 0, aiUsers: 0, departments: 0 };
-      current.totalPeople += activePeople.length;
-      current.aiUsers += aiUsers;
-      current.departments += 1;
-      map.set(centerName, current);
-      return map;
-    }, new Map())
-    .values();
+    const current = map.get(centerName) || { center: centerName, totalPeople: 0, aiUsers: 0 };
+    current.totalPeople += activePeople.length;
+    current.aiUsers += aiUsers;
+    map.set(centerName, current);
+    return map;
+  }, new Map()).values()].sort((left, right) => right.aiUsers - left.aiUsers);
 }
 
 export default function Dashboard({ onNav }) {
   const { data } = useApp();
+  const [showAllCenters, setShowAllCenters] = useState(false);
+
   if (!data) return null;
 
   const { tools, departments, settings } = data;
@@ -95,7 +95,8 @@ export default function Dashboard({ onNav }) {
   const topCostTools = buildTopCostTools(tools, departments, usd);
   const idleTools = buildIdleTools(tools, departments);
   const multiToolPeople = buildMultiToolPeople(departments);
-  const centerUsage = [...buildCenterUsage(departments)].sort((left, right) => right.aiUsers - left.aiUsers);
+  const centerUsage = buildCenterUsage(departments);
+  const visibleCenterUsage = showAllCenters ? centerUsage : centerUsage.slice(0, 3);
 
   return (
     <div>
@@ -214,11 +215,11 @@ export default function Dashboard({ onNav }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
         <ListCard
           title="各中心 AI 使用人數"
-          subtitle="可快速看出哪個中心導入最多、哪裡還有擴大空間"
-          actionLabel="查看人員管理"
-          onAction={() => onNav('personnel')}
+          subtitle="預設顯示前 3 個導入最多的單位，可再展開查看全部"
+          actionLabel={showAllCenters ? '收合' : '展開全部'}
+          onAction={() => setShowAllCenters((current) => !current)}
         >
-          {centerUsage.map((item) => (
+          {visibleCenterUsage.map((item) => (
             <ListRow
               key={item.center}
               left={item.center}
@@ -227,6 +228,11 @@ export default function Dashboard({ onNav }) {
               tone="#2563eb"
             />
           ))}
+          {centerUsage.length > 3 && (
+            <div style={{ fontSize: 12, color: 'var(--muted)', paddingTop: 4 }}>
+              {showAllCenters ? `目前顯示全部 ${centerUsage.length} 個單位` : `目前顯示前 3 個單位，另有 ${centerUsage.length - 3} 個單位`}
+            </div>
+          )}
         </ListCard>
 
         <ListCard
@@ -392,39 +398,4 @@ function ListRow({ left, right, sub, tone = 'var(--text)' }) {
 
 function EmptyHint({ text }) {
   return <div style={{ fontSize: 13, color: 'var(--muted)', padding: '8px 0' }}>{text}</div>;
-}
-
-function QuickIcon({ icon }) {
-  if (icon === 'report') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 22, height: 22 }}>
-        <path d="M9 17v-6M13 17V7M17 17v-3M5 21h14" />
-      </svg>
-    );
-  }
-
-  if (icon === 'people') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 22, height: 22 }}>
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    );
-  }
-
-  if (icon === 'tools') {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 22, height: 22 }}>
-        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 22, height: 22 }}>
-      <path d="M12 2 15 8l6 .9-4.5 4.3 1.1 6L12 16.8 6.4 19.2l1.1-6L3 8.9 9 8z" />
-    </svg>
-  );
 }
