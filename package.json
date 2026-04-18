@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "ai-tool-management-dashboard",
   "private": true,
-  "version": "2.1.1",
+  "version": "2.1.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -29,3 +29,4 @@
     "vite": "^8.0.4"
   }
 }
+
