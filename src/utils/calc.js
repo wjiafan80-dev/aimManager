@@ -47,14 +47,14 @@ export function normalizeToolPricing(tool) {
     0
   ) || 0;
   const taxRate = Number(tool.taxRate ?? 0) || 0;
-  const discountRate = Number(tool.discountRate ?? 10) || 0;
-  const netPrice = listPrice * (1 + taxRate / 100) * (discountRate / 10);
+  const discountPercent = Number(tool.discountPercent ?? 0) || 0;
+  const netPrice = listPrice * (1 + taxRate / 100) * (1 - discountPercent / 100);
 
   return {
     pricingMode,
     listPrice,
     taxRate,
-    discountRate,
+    discountPercent,
     monthly: pricingMode === 'annual' ? netPrice / 12 : netPrice,
     annual: pricingMode === 'annual' ? netPrice : netPrice * 12,
   };

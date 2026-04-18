@@ -19,7 +19,7 @@ const EMPTY_TOOL = {
   pricingMode: 'monthly',
   listPrice: '',
   taxRate: '0',
-  discountRate: '10',
+  discountPercent: '0',
   monthly: '',
   annual: '',
   color: '#6366f1',
@@ -33,7 +33,7 @@ function getFormPricing(form) {
     pricingMode: form.pricingMode,
     listPrice: form.listPrice,
     taxRate: form.taxRate,
-    discountRate: form.discountRate,
+    discountPercent: form.discountPercent,
     monthly: form.monthly,
     annual: form.annual,
   });
@@ -52,7 +52,7 @@ function getEditableToolForm(tool) {
     pricingMode: normalized.pricingMode,
     listPrice: normalized.listPrice || '',
     taxRate: normalized.taxRate.toString(),
-    discountRate: normalized.discountRate.toString(),
+    discountPercent: normalized.discountPercent.toString(),
     monthly: normalized.monthly ? normalized.monthly.toFixed(2) : '',
     annual: normalized.annual ? normalized.annual.toFixed(2) : '',
     seats: tool.seats || '',
@@ -98,7 +98,7 @@ export default function Tools({ autoAction }) {
       pricingMode: form.pricingMode,
       listPrice: parseFloat(form.listPrice) || 0,
       taxRate: parseFloat(form.taxRate) || 0,
-      discountRate: parseFloat(form.discountRate) || 0,
+      discountPercent: parseFloat(form.discountPercent) || 0,
       monthly: pricing.monthly,
       annual: pricing.annual,
       seats: parseInt(form.seats) || 0,
@@ -209,7 +209,7 @@ export default function Tools({ autoAction }) {
                     <td><span className="badge">{t.currency}</span></td>
                     <td style={{ fontSize: 12, lineHeight: 1.5 }}>
                       <div>定價 {pricing.listPrice ? pricing.listPrice.toLocaleString() : '—'}</div>
-                      <div style={{ color: 'var(--muted)' }}>稅 {pricing.taxRate}% / {pricing.discountRate} 折</div>
+                      <div style={{ color: 'var(--muted)' }}>稅 {pricing.taxRate}% / 折扣 {pricing.discountPercent}%</div>
                     </td>
                     <td>{t.monthly ? `${t.monthly.toLocaleString()} (NT$${Math.round(mNTD).toLocaleString()})` : '—'}</td>
                     <td>{t.annual ? `${t.annual.toLocaleString()} (NT$${Math.round(aNTD).toLocaleString()})` : '—'}</td>
@@ -360,8 +360,8 @@ export default function Tools({ autoAction }) {
               <input className="input" type="number" step="0.1" value={form.taxRate} onChange={e => setForm(f => ({ ...f, taxRate: e.target.value }))} placeholder="0" />
             </div>
             <div>
-              <label className="label">優惠折數</label>
-              <input className="input" type="number" step="0.1" value={form.discountRate} onChange={e => setForm(f => ({ ...f, discountRate: e.target.value }))} placeholder="10" />
+              <label className="label">折扣 (%)</label>
+              <input className="input" type="number" step="0.1" value={form.discountPercent} onChange={e => setForm(f => ({ ...f, discountPercent: e.target.value }))} placeholder="0" />
             </div>
             <div>
               <label className="label">{form.pricingMode === 'monthly' ? '月費' : '月費（自動反推）'}</label>
@@ -396,7 +396,7 @@ export default function Tools({ autoAction }) {
               </div>
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.7, alignSelf: 'end' }}>
-              先選月費或年費，再輸入對應定價；系統會套用稅金與折扣後，自動反推另一個欄位。
+              先選月費或年費，再輸入對應定價；系統會套用稅金與折扣百分比後，自動反推另一個欄位。
             </div>
           </div>
           <div>
