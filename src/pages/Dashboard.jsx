@@ -30,6 +30,21 @@ function buildTopCostTools(tools, departments, usd) {
     .slice(0, 3);
 }
 
+function buildTopPurchasedTools(tools, departments) {
+  return [...tools]
+    .map((tool) => {
+      const usedSeats = toolUserCount(tool.id, departments);
+      const purchasedSeats = tool.seats || usedSeats;
+      return {
+        ...tool,
+        usedSeats,
+        purchasedSeats,
+      };
+    })
+    .sort((left, right) => right.purchasedSeats - left.purchasedSeats)
+    .slice(0, 5);
+}
+
 function buildIdleTools(tools, departments) {
   return [...tools]
     .map((tool) => {
@@ -93,6 +108,7 @@ export default function Dashboard({ onNav }) {
   const expiringItems = getExpiringItems(departments, tools, 2);
   const urgentExpiringItems = expiringItems.slice(0, 5);
   const topCostTools = buildTopCostTools(tools, departments, usd);
+  const topPurchasedTools = buildTopPurchasedTools(tools, departments);
   const idleTools = buildIdleTools(tools, departments);
   const multiToolPeople = buildMultiToolPeople(departments);
   const centerUsage = buildCenterUsage(departments);
@@ -254,20 +270,20 @@ export default function Dashboard({ onNav }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <ListCard
-          title="近期到期項目"
-          subtitle="近 2 個月內需要續約或調整的人員與工具"
-          actionLabel="查看費用報表"
-          onAction={() => onNav('reports')}
+          title="買最多的工具排行"
+          subtitle="依目前已購買或實際計費席數排序"
+          actionLabel="查看工具管理"
+          onAction={() => onNav('tools')}
         >
-          {urgentExpiringItems.length > 0 ? urgentExpiringItems.map(({ person, dept, tool, entry, expired }) => (
+          {topPurchasedTools.map((tool) => (
             <ListRow
-              key={`${person.id}-${tool.id}-${entry.end}`}
-              left={`${person.name} / ${toolName(tool)}`}
-              right={entry.end}
-              sub={`${dept.name}${expired ? '，已到期' : '，即將到期'}`}
-              tone={expired ? '#ef4444' : '#f59e0b'}
+              key={tool.id}
+              left={toolName(tool)}
+              right={`${tool.purchasedSeats} 席`}
+              sub={`目前使用 ${tool.usedSeats} 人${tool.seats ? `，已購買 ${tool.seats} 席` : '，依實際使用人數計費'}`}
+              tone="#2563eb"
             />
-          )) : <EmptyHint text="近 2 個月沒有到期項目" />}
+          ))}
         </ListCard>
 
         <ListCard
@@ -330,7 +346,7 @@ function InsightCard({ title, subtitle, children }) {
     <div className="card" style={{ padding: '18px 20px' }}>
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{title}</div>
-        <div style={{ fontSize: 12, color: 'var(--muted)' }}>{subtitle}</div>
+        {subtitle ? <div style={{ fontSize: 12, color: 'var(--muted)' }}>{subtitle}</div> : null}
       </div>
       <div style={{ display: 'grid', gap: 10 }}>{children}</div>
     </div>
