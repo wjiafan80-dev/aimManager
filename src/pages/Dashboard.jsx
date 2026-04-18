@@ -23,10 +23,28 @@ function buildTopCostTools(tools, departments, usd) {
         ...tool,
         usedSeats,
         chargedSeats,
-        monthlyCost: toolMonthlyNTD(tool, usd) * chargedSeats,
+        monthlyUnitCost: toolMonthlyNTD(tool, usd),
+        monthlyTotalCost: toolMonthlyNTD(tool, usd) * chargedSeats,
       };
     })
-    .sort((left, right) => right.monthlyCost - left.monthlyCost)
+    .sort((left, right) => right.monthlyTotalCost - left.monthlyTotalCost)
+    .slice(0, 3);
+}
+
+function buildTopUnitPriceTools(tools, departments, usd) {
+  return [...tools]
+    .map((tool) => {
+      const usedSeats = toolUserCount(tool.id, departments);
+      const chargedSeats = tool.seats || usedSeats;
+      return {
+        ...tool,
+        usedSeats,
+        chargedSeats,
+        monthlyUnitCost: toolMonthlyNTD(tool, usd),
+        monthlyTotalCost: toolMonthlyNTD(tool, usd) * chargedSeats,
+      };
+    })
+    .sort((left, right) => right.monthlyUnitCost - left.monthlyUnitCost)
     .slice(0, 3);
 }
 
@@ -91,6 +109,7 @@ function buildCenterUsage(departments) {
 export default function Dashboard({ onNav }) {
   const { data } = useApp();
   const [showAllCenters, setShowAllCenters] = useState(false);
+  const [costRankingMode, setCostRankingMode] = useState('total');
 
   if (!data) return null;
 
@@ -108,11 +127,13 @@ export default function Dashboard({ onNav }) {
   const expiringItems = getExpiringItems(departments, tools, 2);
   const urgentExpiringItems = expiringItems.slice(0, 5);
   const topCostTools = buildTopCostTools(tools, departments, usd);
+  const topUnitPriceTools = buildTopUnitPriceTools(tools, departments, usd);
   const topPurchasedTools = buildTopPurchasedTools(tools, departments);
   const idleTools = buildIdleTools(tools, departments);
   const multiToolPeople = buildMultiToolPeople(departments);
   const centerUsage = buildCenterUsage(departments);
   const visibleCenterUsage = showAllCenters ? centerUsage : centerUsage.slice(0, 3);
+  const visibleCostRanking = costRankingMode === 'unit' ? topUnitPriceTools : topCostTools;
 
   return (
     <div>
@@ -187,7 +208,7 @@ export default function Dashboard({ onNav }) {
         <StatCard
           label="每年總費用"
           value={ntd(annualTotal)}
-          sub="以目前工具定價與授權數量估算"
+          sub="以目前折扣後費用與授權數量估算"
           color="#7c3aed"
           onClick={() => onNav('reports')}
         />
@@ -200,7 +221,7 @@ export default function Dashboard({ onNav }) {
         >
           <InsightRow
             title="目前月費最高工具"
-            value={topCostTools[0] ? `${toolName(topCostTools[0])} ${ntd(topCostTools[0].monthlyCost)} / 月` : '目前沒有資料'}
+            value={topCostTools[0] ? `${toolName(topCostTools[0])} ${ntd(topCostTools[0].monthlyTotalCost)} / 月` : '目前沒有資料'}
             tone="#2563eb"
           />
           <InsightRow
@@ -253,16 +274,28 @@ export default function Dashboard({ onNav }) {
 
         <ListCard
           title="高成本工具"
-          subtitle="目前月費支出最高的工具"
+          subtitle={costRankingMode === 'unit' ? '依單一授權折扣後月費排序' : '依折扣後每月總花費排序'}
           actionLabel="查看費用報表"
           onAction={() => onNav('reports')}
+          extraAction={(
+            <SegmentToggle
+              value={costRankingMode}
+              onChange={setCostRankingMode}
+              options={[
+                { value: 'unit', label: '高單價' },
+                { value: 'total', label: '總花費' },
+              ]}
+            />
+          )}
         >
-          {topCostTools.map((tool) => (
+          {visibleCostRanking.map((tool) => (
             <ListRow
-              key={tool.id}
+              key={`${costRankingMode}-${tool.id}`}
               left={toolName(tool)}
-              right={`${ntd(tool.monthlyCost)} / 月`}
-              sub={`使用 ${tool.usedSeats} 人，計費 ${tool.chargedSeats} 席`}
+              right={costRankingMode === 'unit' ? `${ntd(tool.monthlyUnitCost)} / 席` : `${ntd(tool.monthlyTotalCost)} / 月`}
+              sub={costRankingMode === 'unit'
+                ? `目前使用 ${tool.usedSeats} 人，計費 ${tool.chargedSeats} 席`
+                : `目前使用 ${tool.usedSeats} 人，計費 ${tool.chargedSeats} 席，單價 ${ntd(tool.monthlyUnitCost)} / 席`}
             />
           ))}
         </ListCard>
@@ -381,7 +414,7 @@ function SummaryPill({ label, value, tone }) {
   );
 }
 
-function ListCard({ title, subtitle, actionLabel, onAction, children }) {
+function ListCard({ title, subtitle, actionLabel, onAction, children, extraAction }) {
   return (
     <div className="card">
       <div className="card-header">
@@ -389,11 +422,14 @@ function ListCard({ title, subtitle, actionLabel, onAction, children }) {
           <div className="card-title">{title}</div>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{subtitle}</div>
         </div>
-        {actionLabel && (
-          <button className="btn btn-ghost btn-sm" onClick={onAction}>
-            {actionLabel}
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {extraAction}
+          {actionLabel && (
+            <button className="btn btn-ghost btn-sm" onClick={onAction}>
+              {actionLabel}
+            </button>
+          )}
+        </div>
       </div>
       <div style={{ padding: '8px 16px 14px', display: 'grid', gap: 10 }}>{children}</div>
     </div>
@@ -414,4 +450,42 @@ function ListRow({ left, right, sub, tone = 'var(--text)' }) {
 
 function EmptyHint({ text }) {
   return <div style={{ fontSize: 13, color: 'var(--muted)', padding: '8px 0' }}>{text}</div>;
+}
+
+function SegmentToggle({ value, onChange, options }) {
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        padding: 3,
+        borderRadius: 999,
+        background: 'var(--bg-subtle)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            style={{
+              border: 'none',
+              background: active ? '#ffffff' : 'transparent',
+              color: active ? 'var(--text)' : 'var(--muted)',
+              padding: '6px 10px',
+              fontSize: 12,
+              fontWeight: 700,
+              borderRadius: 999,
+              cursor: 'pointer',
+              boxShadow: active ? '0 1px 2px rgba(15, 23, 42, 0.08)' : 'none',
+            }}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
