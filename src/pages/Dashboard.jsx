@@ -162,7 +162,7 @@ export default function Dashboard({ onNav }) {
       <div className="quick-actions" style={{ marginBottom: 20 }}>
         <button className="quick-btn" onClick={() => onNav('reports')}>
           <QuickIcon icon="report" />
-          看主管報表
+          查看報表
         </button>
         <button className="quick-btn" onClick={() => onNav('personnel')}>
           <QuickIcon icon="people" />
@@ -176,8 +176,8 @@ export default function Dashboard({ onNav }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20, marginBottom: 20 }}>
         <InsightCard
-          title="主管先看這 3 件事"
-          subtitle="把明天要講的重點直接整理在首頁"
+          title="重點摘要"
+          subtitle="整合目前最需要優先關注的管理資訊"
         >
           <InsightRow
             title="成本最高工具"
@@ -197,8 +197,8 @@ export default function Dashboard({ onNav }) {
         </InsightCard>
 
         <InsightCard
-          title="導入狀態摘要"
-          subtitle="協助主管快速判斷現在是在試用、推廣還是深化"
+          title="整體狀態"
+          subtitle="快速掌握目前的使用、到期與配置情形"
         >
           <div style={{ display: 'grid', gap: 10 }}>
             <SummaryPill label="使用人數" value={`${aiUsers} 人`} tone="#2563eb" />
@@ -228,7 +228,7 @@ export default function Dashboard({ onNav }) {
 
         <ListCard
           title="近期到期清單"
-          subtitle="明天展示時很適合說明這套系統能預先提醒風險"
+          subtitle="用於追蹤近期需要續約或調整的授權"
           actionLabel="前往報表"
           onAction={() => onNav('reports')}
         >
@@ -247,7 +247,7 @@ export default function Dashboard({ onNav }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <ListCard
           title="閒置授權清單"
-          subtitle="如果明天主管問能不能省錢，這一塊就是答案"
+          subtitle="用於盤點可再分配或可檢討的授權席次"
           actionLabel="看工具頁"
           onAction={() => onNav('tools')}
         >
