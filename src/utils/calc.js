@@ -3,6 +3,8 @@ import { toNTD } from './format.js';
 
 export { isExpired };
 
+const TOOL_PRICING_META_PREFIX = '[pricing-meta]';
+
 // 統一格式：舊版 id=toolId，新版 toolId=toolId + id=assignmentId
 // 統一後：toolId = 工具ID，_assignId = 授權列ID（供 savePersonFull 更新用）
 export function normTools(tools) {
@@ -21,45 +23,89 @@ export function normTools(tools) {
   });
 }
 
-export function toolMonthlyNTD(tool, usdRate) {
-  if (tool.listPrice || tool.taxRate || tool.discountPercent || tool.pricingMode) {
-    return toNTD(normalizeToolPricing(tool).monthly, tool.currency, usdRate);
+export function extractToolNotes(rawNotes = '') {
+  if (typeof rawNotes !== 'string' || !rawNotes.startsWith(TOOL_PRICING_META_PREFIX)) {
+    return { notes: rawNotes || '', pricingMeta: null };
   }
-  if (tool.monthly) return toNTD(tool.monthly, tool.currency, usdRate);
-  if (tool.annual) return toNTD(tool.annual, tool.currency, usdRate) / 12;
+
+  const lineEnd = rawNotes.indexOf('\n');
+  const metaText = rawNotes.slice(
+    TOOL_PRICING_META_PREFIX.length,
+    lineEnd === -1 ? rawNotes.length : lineEnd,
+  );
+
+  try {
+    return {
+      notes: lineEnd === -1 ? '' : rawNotes.slice(lineEnd + 1),
+      pricingMeta: JSON.parse(metaText),
+    };
+  } catch {
+    return { notes: rawNotes || '', pricingMeta: null };
+  }
+}
+
+export function buildToolNotes(notes, pricing) {
+  const payload = {
+    pricingMode: pricing.pricingMode || 'monthly',
+    listPrice: Number(pricing.listPrice) || 0,
+    taxRate: Number(pricing.taxRate) || 0,
+    discountPercent: Number(pricing.discountPercent) || 0,
+  };
+  const userNotes = notes || '';
+  return `${TOOL_PRICING_META_PREFIX}${JSON.stringify(payload)}\n${userNotes}`;
+}
+
+function getToolPricingSource(tool = {}) {
+  const { notes, pricingMeta } = extractToolNotes(tool.notes);
+  return {
+    pricingMode: tool.pricingMode ?? pricingMeta?.pricingMode,
+    listPrice: tool.listPrice ?? pricingMeta?.listPrice,
+    taxRate: tool.taxRate ?? pricingMeta?.taxRate,
+    discountPercent: tool.discountPercent ?? pricingMeta?.discountPercent,
+    monthly: tool.monthly,
+    annual: tool.annual,
+    currency: tool.currency,
+    notes,
+  };
+}
+
+export function toolMonthlyNTD(tool, usdRate) {
+  const pricing = normalizeToolPricing(tool);
+  const currency = getToolPricingSource(tool).currency;
+  if (pricing.monthly) return toNTD(pricing.monthly, currency, usdRate);
   return 0;
 }
 
 export function toolAnnualNTD(tool, usdRate) {
-  if (tool.listPrice || tool.taxRate || tool.discountPercent || tool.pricingMode) {
-    return toNTD(normalizeToolPricing(tool).annual, tool.currency, usdRate);
-  }
-  if (tool.annual) return toNTD(tool.annual, tool.currency, usdRate);
-  if (tool.monthly) return toNTD(tool.monthly, tool.currency, usdRate) * 12;
+  const pricing = normalizeToolPricing(tool);
+  const currency = getToolPricingSource(tool).currency;
+  if (pricing.annual) return toNTD(pricing.annual, currency, usdRate);
   return 0;
 }
 
 export function toolAnnualListPriceNTD(tool, usdRate) {
-  const pricingMode = tool.pricingMode || (tool.annual && !tool.monthly ? 'annual' : 'monthly');
+  const source = getToolPricingSource(tool);
+  const pricingMode = source.pricingMode || (source.annual && !source.monthly ? 'annual' : 'monthly');
   const listPrice = Number(
-    tool.listPrice ??
-    (pricingMode === 'annual' ? tool.annual : tool.monthly) ??
+    source.listPrice ??
+    (pricingMode === 'annual' ? source.annual : source.monthly) ??
     0
   ) || 0;
-  const taxRate = Number(tool.taxRate ?? 0) || 0;
+  const taxRate = Number(source.taxRate ?? 0) || 0;
   const annualBase = pricingMode === 'annual' ? listPrice : listPrice * 12;
-  return toNTD(annualBase * (1 + taxRate / 100), tool.currency, usdRate);
+  return toNTD(annualBase * (1 + taxRate / 100), source.currency, usdRate);
 }
 
 export function normalizeToolPricing(tool) {
-  const pricingMode = tool.pricingMode || (tool.annual && !tool.monthly ? 'annual' : 'monthly');
+  const source = getToolPricingSource(tool);
+  const pricingMode = source.pricingMode || (source.annual && !source.monthly ? 'annual' : 'monthly');
   const listPrice = Number(
-    tool.listPrice ??
-    (pricingMode === 'annual' ? tool.annual : tool.monthly) ??
+    source.listPrice ??
+    (pricingMode === 'annual' ? source.annual : source.monthly) ??
     0
   ) || 0;
-  const taxRate = Number(tool.taxRate ?? 0) || 0;
-  const discountPercent = Number(tool.discountPercent ?? 0) || 0;
+  const taxRate = Number(source.taxRate ?? 0) || 0;
+  const discountPercent = Number(source.discountPercent ?? 0) || 0;
   const netPrice = listPrice * (1 + taxRate / 100) * (1 - discountPercent / 100);
 
   return {
@@ -67,6 +113,7 @@ export function normalizeToolPricing(tool) {
     listPrice,
     taxRate,
     discountPercent,
+    notes: source.notes,
     monthly: pricingMode === 'annual' ? netPrice / 12 : netPrice,
     annual: pricingMode === 'annual' ? netPrice : netPrice * 12,
   };

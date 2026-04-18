@@ -4,7 +4,7 @@ import { Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
 import { useApp } from '../context/AppContext.jsx';
 import Modal from '../components/common/Modal.jsx';
-import { normalizeToolPricing, toolAnnualListPriceNTD, toolMonthlyNTD, toolAnnualNTD, toolUserCount } from '../utils/calc.js';
+import { buildToolNotes, extractToolNotes, normalizeToolPricing, toolAnnualListPriceNTD, toolMonthlyNTD, toolAnnualNTD, toolUserCount } from '../utils/calc.js';
 import { ntd, toolName, uid } from '../utils/format.js';
 import { ym, today } from '../utils/date.js';
 
@@ -47,6 +47,7 @@ function getFormPricing(form) {
 
 function getEditableToolForm(tool) {
   const normalized = normalizeToolPricing(tool);
+  const { notes } = extractToolNotes(tool.notes);
   return {
     ...tool,
     pricingMode: normalized.pricingMode,
@@ -56,6 +57,7 @@ function getEditableToolForm(tool) {
     monthly: normalized.monthly ? normalized.monthly.toFixed(2) : '',
     annual: normalized.annual ? normalized.annual.toFixed(2) : '',
     seats: tool.seats || '',
+    notes,
   };
 }
 
@@ -102,6 +104,12 @@ export default function Tools({ autoAction }) {
       monthly: pricing.monthly,
       annual: pricing.annual,
       seats: parseInt(form.seats) || 0,
+      notes: buildToolNotes(form.notes, {
+        pricingMode: form.pricingMode,
+        listPrice: parseFloat(form.listPrice) || 0,
+        taxRate: parseFloat(form.taxRate) || 0,
+        discountPercent: parseFloat(form.discountPercent) || 0,
+      }),
     };
     // Auto log on create
     let logEntry = null;
