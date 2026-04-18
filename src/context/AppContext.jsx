@@ -21,8 +21,8 @@ export function AppProvider({ children }) {
 
   const toast = useCallback((msg, type = '') => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, msg, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((item) => item.id !== id)), 3500);
+    setToasts(prev => [...prev, { id, msg, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(item => item.id !== id)), 3500);
   }, []);
 
   const loadDemoData = useCallback((silent = false) => {
@@ -98,25 +98,25 @@ export function AppProvider({ children }) {
     return result;
   }, '工具已儲存。');
 
-  const deleteTool = (id) => call(() => api.deleteTool(id, token), '工具已刪除。');
+  const deleteTool = id => call(() => api.deleteTool(id, token), '工具已刪除。');
 
-  const saveDept = (payload) => call(() => api.saveDept(payload, token), '單位已儲存。');
-  const deleteDept = (id) => call(() => api.deleteDept(id, token), '單位已刪除。');
-  const renameCenter = (payload) => call(() => api.renameCenter(payload, token), '中心名稱已更新。');
+  const saveDept = payload => call(() => api.saveDept(payload, token), '單位已儲存。');
+  const deleteDept = id => call(() => api.deleteDept(id, token), '單位已刪除。');
+  const renameCenter = payload => call(() => api.renameCenter(payload, token), '中心名稱已更新。');
 
-  const savePersonFull = (payload) => call(() => api.savePersonFull(payload, token), '人員資料已儲存。');
-  const deletePerson = (payload) => call(() => api.deletePerson(payload, token), '人員已停用。');
-  const permanentDeletePerson = (payload) => call(() => api.permanentDeletePerson(payload, token), '人員已永久刪除。');
+  const savePersonFull = payload => call(() => api.savePersonFull(payload, token), '人員資料已儲存。');
+  const deletePerson = payload => call(() => api.deletePerson(payload, token), '人員已停用。');
+  const permanentDeletePerson = payload => call(() => api.permanentDeletePerson(payload, token), '人員已永久刪除。');
 
-  const saveAssignment = (payload) => call(() => api.saveAssignment(payload, token), null);
-  const revokeAssignment = (payload) => call(() => api.revokeAssignment(payload, token), '授權已停用。');
-  const deleteAssignment = (id) => call(() => api.deleteAssignment(id, token), '停用紀錄已刪除。');
+  const saveAssignment = payload => call(() => api.saveAssignment(payload, token), null);
+  const revokeAssignment = payload => call(() => api.revokeAssignment(payload, token), '授權已停用。');
+  const deleteAssignment = id => call(() => api.deleteAssignment(id, token), '停用紀錄已刪除。');
 
-  const saveLog = (payload) => call(() => api.saveLog(payload, token), '授權異動已記錄。');
-  const deleteLog = (id) => call(() => api.deleteLog(id, token), '異動紀錄已刪除。');
+  const saveLog = payload => call(() => api.saveLog(payload, token), '授權異動已記錄。');
+  const deleteLog = id => call(() => api.deleteLog(id, token), '異動紀錄已刪除。');
 
-  const saveMaturity = (payload) => call(() => api.saveMaturity(payload, token), '成熟度評估已儲存。');
-  const saveSettings = (payload) => call(() => api.saveSettings(payload, token), '設定已儲存。');
+  const saveMaturity = payload => call(() => api.saveMaturity(payload, token), '成熟度評估已儲存。');
+  const saveSettings = payload => call(() => api.saveSettings(payload, token), '設定已儲存。');
 
   const value = {
     data,

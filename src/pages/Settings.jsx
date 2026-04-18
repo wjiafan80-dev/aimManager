@@ -1,6 +1,6 @@
-﻿import { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext.jsx';
+import { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
+import { useApp } from '../context/AppContext.jsx';
 
 export default function Settings() {
   const { data, loading, isAdmin, onGoogleLogin, logout, saveSettings } = useApp();
@@ -23,22 +23,20 @@ export default function Settings() {
 
   return (
     <div style={{ maxWidth: 640 }}>
-
-      {/* 蝞∠??∟澈隞?*/}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
-          <span className="card-title">蝞∠??∟澈隞?/span>
+          <span className="card-title">管理員身份</span>
         </div>
         <div style={{ padding: '16px' }}>
           {isAdmin ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ color: '#10b981', fontWeight: 600 }}>漎?撌脩?伐?蝞∠??⊥芋撘?</span>
-              <button className="btn btn-ghost btn-sm" onClick={logout}>?餃</button>
+              <span style={{ color: '#10b981', fontWeight: 600 }}>已登入管理員模式</span>
+              <button className="btn btn-ghost btn-sm" onClick={logout}>登出</button>
             </div>
           ) : (
             <div>
               <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-                雿輻雿? Google 撣唾??餃嚗頂蝯望?撽??臬?函恣?皜銝准?
+                使用 Google 帳號登入後，才能修改工具、座位與系統設定。
               </p>
               <GoogleLogin
                 onSuccess={onGoogleLogin}
@@ -52,14 +50,13 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* ?砍鞈? */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
-          <span className="card-title">?砍鞈?</span>
+          <span className="card-title">公司資訊</span>
         </div>
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <label className="label">?桐??迂</label>
+            <label className="label">單位名稱</label>
             <input
               className="input"
               value={company}
@@ -68,7 +65,7 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="label">USD ??NTD ?舐?</label>
+            <label className="label">USD 兌台幣匯率</label>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 className="input"
@@ -87,26 +84,23 @@ export default function Settings() {
           {isAdmin && (
             <div>
               <button className="btn btn-primary" onClick={handleSave} disabled={loading}>
-                ?脣?閮剖?
+                儲存設定
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* ? */}
       <div className="card">
         <div className="card-header">
-          <span className="card-title">?</span>
+          <span className="card-title">關於系統</span>
         </div>
         <div style={{ padding: '16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.8 }}>
-          <p>AI 撌亙蝞∠?蝟餌絞 v2.1.2</p>
-          <p>鞈??脣???Google Sheets嚗?蝡舐 Google Apps Script 撽???/p>
-          <p>?恣?撣唾??舀憓楊頛舀??芷鞈?嚗??犖?舀??/p>
+          <p>AI 工具管理系統 v2.1.2</p>
+          <p>資料儲存於 Google Sheets，後端由 Google Apps Script 提供。</p>
+          <p>目前畫面已統一使用台幣顯示費用，方便直接做管理與採購判讀。</p>
         </div>
       </div>
-
     </div>
   );
 }
-
