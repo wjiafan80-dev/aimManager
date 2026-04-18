@@ -260,7 +260,7 @@ export default function Dashboard({ onNav }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
         <ListCard
           title="各中心 AI 使用人數"
-          subtitle={centerRankingMode === 'rate' ? '預設顯示前 3 個導入率最高的單位，可再展開查看全部' : '預設顯示前 3 個使用人數最多的單位，可再展開查看全部'}
+          subtitle=""
           actionLabel={showAllCenters ? '收合' : '展開全部'}
           onAction={() => setShowAllCenters((current) => !current)}
           extraAction={(
