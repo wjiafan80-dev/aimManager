@@ -36,7 +36,7 @@ export default function Settings() {
           ) : (
             <div>
               <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-                使用 Google 帳號登入後，才能修改工具、座位與系統設定。
+                使用 Google 帳號登入後，才能修改工具、授權和系統設定。
               </p>
               <GoogleLogin
                 onSuccess={onGoogleLogin}
@@ -52,7 +52,7 @@ export default function Settings() {
 
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
-          <span className="card-title">公司資訊</span>
+          <span className="card-title">系統設定</span>
         </div>
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
@@ -96,9 +96,9 @@ export default function Settings() {
           <span className="card-title">關於系統</span>
         </div>
         <div style={{ padding: '16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.8 }}>
-          <p>AI 工具管理系統 v2.1.2</p>
+          <p>AI 工具管理系統 v2.1.3</p>
           <p>資料儲存於 Google Sheets，後端由 Google Apps Script 提供。</p>
-          <p>目前畫面已統一使用台幣顯示費用，方便直接做管理與採購判讀。</p>
+          <p>所有金額已統一換算為台幣，方便主管直接判讀年度費用與折扣效益。</p>
         </div>
       </div>
     </div>
