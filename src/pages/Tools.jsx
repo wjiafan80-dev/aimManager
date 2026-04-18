@@ -340,8 +340,14 @@ export default function Tools({ autoAction }) {
               </select>
             </div>
             <div>
-              <label className="label">定價</label>
-              <input className="input" type="number" value={form.listPrice} onChange={e => setForm(f => ({ ...f, listPrice: e.target.value }))} placeholder="0" />
+              <label className="label">{form.pricingMode === 'monthly' ? '月費定價' : '年費定價'}</label>
+              <input
+                className="input"
+                type="number"
+                value={form.listPrice}
+                onChange={e => setForm(f => ({ ...f, listPrice: e.target.value }))}
+                placeholder={form.pricingMode === 'monthly' ? '請輸入月費' : '請輸入年費'}
+              />
             </div>
             <div>
               <label className="label">購買席數</label>
@@ -390,7 +396,7 @@ export default function Tools({ autoAction }) {
               </div>
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.7, alignSelf: 'end' }}>
-              實際費用會以「定價 × (1 + 稅金 %) × 優惠折數」計算，並依照你選擇的月費或年費自動反推另一個欄位。
+              先選月費或年費，再輸入對應定價；系統會套用稅金與折扣後，自動反推另一個欄位。
             </div>
           </div>
           <div>
