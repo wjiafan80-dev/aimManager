@@ -203,22 +203,35 @@ export default function Tools({ autoAction }) {
     const quantity = Math.max(0, parseInt(item.quantity, 10) || 0);
 
     if (!tool || quantity <= 0) {
-      return { index, quantity: 0, annualDiscounted: 0, monthlyDiscounted: 0, annualList: 0 };
+      return {
+        index,
+        tool: null,
+        quantity: 0,
+        annualList: 0,
+        annualDiscounted: 0,
+        monthlyDiscounted: 0,
+        annualDiscount: 0,
+      };
     }
+
+    const annualList = toolAnnualListPriceNTD(tool, usdRate) * quantity;
+    const annualDiscounted = toolAnnualNTD(tool, usdRate) * quantity;
+    const monthlyDiscounted = toolMonthlyNTD(tool, usdRate) * quantity;
 
     return {
       index,
+      tool,
       quantity,
-      annualList: toolAnnualListPriceNTD(tool, usdRate) * quantity,
-      annualDiscounted: toolAnnualNTD(tool, usdRate) * quantity,
-      monthlyDiscounted: toolMonthlyNTD(tool, usdRate) * quantity,
+      annualList,
+      annualDiscounted,
+      monthlyDiscounted,
+      annualDiscount: Math.max(0, annualList - annualDiscounted),
     };
   });
 
-  const purchaseAnnualDiscountedTotal = purchaseRows.reduce((sum, row) => sum + row.annualDiscounted, 0);
   const purchaseMonthlyDiscountedTotal = purchaseRows.reduce((sum, row) => sum + row.monthlyDiscounted, 0);
-  const purchaseAnnualListTotal = purchaseRows.reduce((sum, row) => sum + row.annualList, 0);
-  const purchaseAnnualSavings = Math.max(0, purchaseAnnualListTotal - purchaseAnnualDiscountedTotal);
+  const purchaseAnnualDiscountedTotal = purchaseRows.reduce((sum, row) => sum + row.annualDiscounted, 0);
+  const purchaseAnnualSavings = purchaseRows.reduce((sum, row) => sum + row.annualDiscount, 0);
   const projectedAnnualDiscountedTotal = annualDiscountedTotal + purchaseAnnualDiscountedTotal;
 
   function updatePurchaseItem(index, patch) {
@@ -235,6 +248,35 @@ export default function Tools({ autoAction }) {
     setPurchaseItems(items => (
       items.length === 1 ? [{ ...EMPTY_PURCHASE_ITEM }] : items.filter((_, itemIndex) => itemIndex !== index)
     ));
+  }
+
+  async function applyPurchasePlan() {
+    const groupedRows = purchaseRows.reduce((map, row) => {
+      if (!row.tool || row.quantity <= 0) return map;
+      const current = map.get(row.tool.id) || { tool: row.tool, quantity: 0 };
+      current.quantity += row.quantity;
+      map.set(row.tool.id, current);
+      return map;
+    }, new Map());
+
+    if (groupedRows.size === 0) return;
+    if (!confirm('確定要將這份試算直接加入授權與採購紀錄嗎？')) return;
+
+    for (const { tool, quantity } of groupedRows.values()) {
+      await saveTool({
+        ...tool,
+        seats: (tool.seats || 0) + quantity,
+      }, {
+        id: uid(),
+        ts: today(),
+        month: ym(),
+        toolId: tool.id,
+        delta: quantity,
+        notes: '一鍵添加授權',
+      });
+    }
+
+    setPurchaseItems([{ ...EMPTY_PURCHASE_ITEM }]);
   }
 
   return (
@@ -322,64 +364,88 @@ export default function Tools({ autoAction }) {
           <div>
             <span className="card-title">預計新購買試算</span>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-              先選工具和套數，直接看新增後的月費、年費與未來年度總花費。
+              先選工具與套數，直接看新增費用，也可以一鍵轉成授權採購。
             </div>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={addPurchaseItem}>+ 新增工具</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {isAdmin && <button className="btn btn-ghost btn-sm" onClick={applyPurchasePlan}>一鍵添加授權</button>}
+            <button className="btn btn-primary btn-sm" onClick={addPurchaseItem}>+ 新增工具</button>
+          </div>
         </div>
 
         <div style={{ padding: '12px 16px 16px', display: 'grid', gap: 16 }}>
-          <div style={{ display: 'grid', gap: 10 }}>
-            {purchaseItems.map((item, index) => (
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ minWidth: 860 }}>
               <div
-                key={`purchase-${index}`}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'minmax(220px, 1.7fr) 96px auto',
+                  gridTemplateColumns: 'minmax(240px, 2fr) 96px 140px 140px 140px 72px',
                   gap: 10,
-                  alignItems: 'end',
-                  padding: 12,
-                  border: '1px solid var(--border)',
-                  borderRadius: 12,
-                  background: 'var(--card-bg)',
+                  padding: '0 0 8px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'var(--muted)',
                 }}
               >
-                <div>
-                  <label className="label">工具</label>
-                  <select
-                    className="input"
-                    value={item.toolId}
-                    onChange={e => updatePurchaseItem(index, { toolId: e.target.value })}
-                  >
-                    <option value="">請選擇工具</option>
-                    {tools.map(tool => (
-                      <option key={tool.id} value={tool.id}>{toolName(tool)}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="label">套數</label>
-                  <input
-                    className="input"
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={e => updatePurchaseItem(index, { quantity: e.target.value })}
-                    placeholder="1"
-                  />
-                </div>
-
-                <button className="btn btn-ghost btn-sm" onClick={() => removePurchaseItem(index)}>移除</button>
+                <div>工具</div>
+                <div>套數</div>
+                <div>總月費</div>
+                <div>總年費</div>
+                <div>年總折扣</div>
+                <div></div>
               </div>
-            ))}
+
+              <div style={{ display: 'grid', gap: 10 }}>
+                {purchaseRows.map((row, index) => (
+                  <div
+                    key={`purchase-${index}`}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(240px, 2fr) 96px 140px 140px 140px 72px',
+                      gap: 10,
+                      alignItems: 'center',
+                      padding: 12,
+                      border: '1px solid var(--border)',
+                      borderRadius: 12,
+                      background: 'var(--card-bg)',
+                    }}
+                  >
+                    <select
+                      className="input"
+                      value={purchaseItems[index].toolId}
+                      onChange={e => updatePurchaseItem(index, { toolId: e.target.value })}
+                    >
+                      <option value="">請選擇工具</option>
+                      {tools.map(tool => (
+                        <option key={tool.id} value={tool.id}>{toolName(tool)}</option>
+                      ))}
+                    </select>
+
+                    <input
+                      className="input"
+                      type="number"
+                      min="1"
+                      value={purchaseItems[index].quantity}
+                      onChange={e => updatePurchaseItem(index, { quantity: e.target.value })}
+                      placeholder="1"
+                    />
+
+                    <div style={{ fontWeight: 700 }}>{ntd(row.monthlyDiscounted)}</div>
+                    <div style={{ fontWeight: 700 }}>{ntd(row.annualDiscounted)}</div>
+                    <div style={{ fontWeight: 700, color: '#16a34a' }}>{ntd(row.annualDiscount)}</div>
+
+                    <button className="btn btn-ghost btn-sm" onClick={() => removePurchaseItem(index)}>移除</button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <ReadableMetric label="月費折扣後價格" value={ntd(purchaseMonthlyDiscountedTotal)} emphasis="#2563eb" />
-            <ReadableMetric label="年費折扣後價格" value={ntd(purchaseAnnualDiscountedTotal)} emphasis="#2563eb" />
-            <ReadableMetric label="每年省下總金額" value={ntd(purchaseAnnualSavings)} emphasis="#16a34a" />
-            <ReadableMetric label="未來每年總花費" value={ntd(projectedAnnualDiscountedTotal)} emphasis="#1d4ed8" />
+            <ReadableMetric label="每月新增費用" value={ntd(purchaseMonthlyDiscountedTotal)} emphasis="#2563eb" />
+            <ReadableMetric label="每年新增費用" value={ntd(purchaseAnnualDiscountedTotal)} emphasis="#2563eb" />
+            <ReadableMetric label="未來每年總金額" value={ntd(projectedAnnualDiscountedTotal)} emphasis="#1d4ed8" />
+            <ReadableMetric label="未來每年省下總金額" value={ntd(annualSavings + purchaseAnnualSavings)} emphasis="#16a34a" />
           </div>
         </div>
       </div>
