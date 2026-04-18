@@ -4,7 +4,7 @@ import { Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
 import { useApp } from '../context/AppContext.jsx';
 import Modal from '../components/common/Modal.jsx';
-import { toolMonthlyNTD, toolAnnualNTD, toolUserCount } from '../utils/calc.js';
+import { normalizeToolPricing, toolMonthlyNTD, toolAnnualNTD, toolUserCount } from '../utils/calc.js';
 import { ntd, toolName, uid } from '../utils/format.js';
 import { ym, today } from '../utils/date.js';
 
@@ -12,8 +12,52 @@ Chart.register(CategoryScale, LinearScale, LineElement, PointElement, Tooltip, L
 
 const COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16','#f97316','#14b8a6','#3b82f6','#a855f7'];
 
-const EMPTY_TOOL = { name: '', plan: '', currency: 'USD', monthly: '', annual: '', color: '#6366f1', seats: '', notes: '' };
+const EMPTY_TOOL = {
+  name: '',
+  plan: '',
+  currency: 'USD',
+  pricingMode: 'monthly',
+  listPrice: '',
+  taxRate: '0',
+  discountRate: '10',
+  monthly: '',
+  annual: '',
+  color: '#6366f1',
+  seats: '',
+  notes: '',
+};
 const EMPTY_LOG  = { month: ym(), delta: '', notes: '' };
+
+function getFormPricing(form) {
+  const normalized = normalizeToolPricing({
+    pricingMode: form.pricingMode,
+    listPrice: form.listPrice,
+    taxRate: form.taxRate,
+    discountRate: form.discountRate,
+    monthly: form.monthly,
+    annual: form.annual,
+  });
+
+  return {
+    ...normalized,
+    displayMonthly: normalized.monthly ? normalized.monthly.toFixed(2) : '',
+    displayAnnual: normalized.annual ? normalized.annual.toFixed(2) : '',
+  };
+}
+
+function getEditableToolForm(tool) {
+  const normalized = normalizeToolPricing(tool);
+  return {
+    ...tool,
+    pricingMode: normalized.pricingMode,
+    listPrice: normalized.listPrice || '',
+    taxRate: normalized.taxRate.toString(),
+    discountRate: normalized.discountRate.toString(),
+    monthly: normalized.monthly ? normalized.monthly.toFixed(2) : '',
+    annual: normalized.annual ? normalized.annual.toFixed(2) : '',
+    seats: tool.seats || '',
+  };
+}
 
 export default function Tools({ autoAction }) {
   const { data, isAdmin, saveTool, deleteTool, saveLog, deleteLog } = useApp();
@@ -40,18 +84,23 @@ export default function Tools({ autoAction }) {
   }
 
   function openEdit(tool) {
-    setForm({ ...tool });
+    setForm(getEditableToolForm(tool));
     setToolModal(tool);
   }
 
   async function handleSaveTool() {
     if (!form.name.trim()) return;
     const isNew = toolModal === 'new';
+    const pricing = getFormPricing(form);
     const toolData = {
       ...form,
       id: isNew ? undefined : form.id,
-      monthly: parseFloat(form.monthly) || 0,
-      annual: parseFloat(form.annual) || 0,
+      pricingMode: form.pricingMode,
+      listPrice: parseFloat(form.listPrice) || 0,
+      taxRate: parseFloat(form.taxRate) || 0,
+      discountRate: parseFloat(form.discountRate) || 0,
+      monthly: pricing.monthly,
+      annual: pricing.annual,
       seats: parseInt(form.seats) || 0,
     };
     // Auto log on create
@@ -114,6 +163,8 @@ export default function Tools({ autoAction }) {
     }),
   };
 
+  const formPricing = getFormPricing(form);
+
   return (
     <div>
       {isAdmin && (
@@ -130,6 +181,7 @@ export default function Tools({ autoAction }) {
               <tr>
                 <th>工具</th>
                 <th>幣別</th>
+                <th>定價條件</th>
                 <th>月費</th>
                 <th>年費</th>
                 <th>已發 / 購買</th>
@@ -145,6 +197,7 @@ export default function Tools({ autoAction }) {
                 const aNTD = toolAnnualNTD(t, usd);
                 const basis = t.seats || users;
                 const idle = t.seats ? Math.max(0, t.seats - users) : 0;
+                const pricing = normalizeToolPricing(t);
                 return (
                   <tr key={t.id}>
                     <td>
@@ -154,6 +207,10 @@ export default function Tools({ autoAction }) {
                       </div>
                     </td>
                     <td><span className="badge">{t.currency}</span></td>
+                    <td style={{ fontSize: 12, lineHeight: 1.5 }}>
+                      <div>定價 {pricing.listPrice ? pricing.listPrice.toLocaleString() : '—'}</div>
+                      <div style={{ color: 'var(--muted)' }}>稅 {pricing.taxRate}% / {pricing.discountRate} 折</div>
+                    </td>
                     <td>{t.monthly ? `${t.monthly.toLocaleString()} (NT$${Math.round(mNTD).toLocaleString()})` : '—'}</td>
                     <td>{t.annual ? `${t.annual.toLocaleString()} (NT$${Math.round(aNTD).toLocaleString()})` : '—'}</td>
                     <td>
@@ -267,7 +324,7 @@ export default function Tools({ autoAction }) {
               <input className="input" value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))} placeholder="例：Plus" />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
             <div>
               <label className="label">幣別</label>
               <select className="input" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}>
@@ -276,19 +333,52 @@ export default function Tools({ autoAction }) {
               </select>
             </div>
             <div>
-              <label className="label">月費</label>
-              <input className="input" type="number" value={form.monthly} onChange={e => setForm(f => ({ ...f, monthly: e.target.value }))} placeholder="0" />
+              <label className="label">計價方式</label>
+              <select className="input" value={form.pricingMode} onChange={e => setForm(f => ({ ...f, pricingMode: e.target.value }))}>
+                <option value="monthly">月費</option>
+                <option value="annual">年費</option>
+              </select>
             </div>
             <div>
-              <label className="label">年費</label>
-              <input className="input" type="number" value={form.annual} onChange={e => setForm(f => ({ ...f, annual: e.target.value }))} placeholder="0" />
+              <label className="label">定價</label>
+              <input className="input" type="number" value={form.listPrice} onChange={e => setForm(f => ({ ...f, listPrice: e.target.value }))} placeholder="0" />
             </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label className="label">購買席數</label>
               <input className="input" type="number" value={form.seats} onChange={e => setForm(f => ({ ...f, seats: e.target.value }))} placeholder="0" />
             </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+            <div>
+              <label className="label">稅金 (%)</label>
+              <input className="input" type="number" step="0.1" value={form.taxRate} onChange={e => setForm(f => ({ ...f, taxRate: e.target.value }))} placeholder="0" />
+            </div>
+            <div>
+              <label className="label">優惠折數</label>
+              <input className="input" type="number" step="0.1" value={form.discountRate} onChange={e => setForm(f => ({ ...f, discountRate: e.target.value }))} placeholder="10" />
+            </div>
+            <div>
+              <label className="label">{form.pricingMode === 'monthly' ? '月費' : '月費（自動反推）'}</label>
+              <input
+                className="input"
+                type="number"
+                value={formPricing.displayMonthly}
+                readOnly
+                style={{ background: form.pricingMode === 'monthly' ? 'var(--card-bg)' : 'var(--bg-subtle)' }}
+              />
+            </div>
+            <div>
+              <label className="label">{form.pricingMode === 'annual' ? '年費' : '年費（自動反推）'}</label>
+              <input
+                className="input"
+                type="number"
+                value={formPricing.displayAnnual}
+                readOnly
+                style={{ background: form.pricingMode === 'annual' ? 'var(--card-bg)' : 'var(--bg-subtle)' }}
+              />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label className="label">顏色標籤</label>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
@@ -298,6 +388,9 @@ export default function Tools({ autoAction }) {
                   />
                 ))}
               </div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.7, alignSelf: 'end' }}>
+              實際費用會以「定價 × (1 + 稅金 %) × 優惠折數」計算，並依照你選擇的月費或年費自動反推另一個欄位。
             </div>
           </div>
           <div>
