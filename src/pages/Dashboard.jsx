@@ -103,12 +103,16 @@ function buildCenterUsage(departments) {
     current.aiUsers += aiUsers;
     map.set(centerName, current);
     return map;
-  }, new Map()).values()].sort((left, right) => right.aiUsers - left.aiUsers);
+  }, new Map()).values()].map((item) => ({
+    ...item,
+    adoptionRate: item.totalPeople ? Math.round((item.aiUsers / item.totalPeople) * 100) : 0,
+  }));
 }
 
 export default function Dashboard({ onNav }) {
   const { data } = useApp();
   const [showAllCenters, setShowAllCenters] = useState(false);
+  const [centerRankingMode, setCenterRankingMode] = useState('users');
   const [costRankingMode, setCostRankingMode] = useState('total');
 
   if (!data) return null;
@@ -131,7 +135,11 @@ export default function Dashboard({ onNav }) {
   const topPurchasedTools = buildTopPurchasedTools(tools, departments);
   const idleTools = buildIdleTools(tools, departments);
   const multiToolPeople = buildMultiToolPeople(departments);
-  const centerUsage = buildCenterUsage(departments);
+  const centerUsage = [...buildCenterUsage(departments)].sort((left, right) => (
+    centerRankingMode === 'rate'
+      ? right.adoptionRate - left.adoptionRate || right.aiUsers - left.aiUsers
+      : right.aiUsers - left.aiUsers || right.adoptionRate - left.adoptionRate
+  ));
   const visibleCenterUsage = showAllCenters ? centerUsage : centerUsage.slice(0, 3);
   const visibleCostRanking = costRankingMode === 'unit' ? topUnitPriceTools : topCostTools;
 
@@ -252,16 +260,26 @@ export default function Dashboard({ onNav }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
         <ListCard
           title="各中心 AI 使用人數"
-          subtitle="預設顯示前 3 個導入最多的單位，可再展開查看全部"
+          subtitle={centerRankingMode === 'rate' ? '預設顯示前 3 個導入率最高的單位，可再展開查看全部' : '預設顯示前 3 個使用人數最多的單位，可再展開查看全部'}
           actionLabel={showAllCenters ? '收合' : '展開全部'}
           onAction={() => setShowAllCenters((current) => !current)}
+          extraAction={(
+            <SegmentToggle
+              value={centerRankingMode}
+              onChange={setCenterRankingMode}
+              options={[
+                { value: 'rate', label: '導入率' },
+                { value: 'users', label: '使用總人數' },
+              ]}
+            />
+          )}
         >
           {visibleCenterUsage.map((item) => (
             <ListRow
-              key={item.center}
+              key={`${centerRankingMode}-${item.center}`}
               left={item.center}
-              right={`${item.aiUsers} 人`}
-              sub={`共 ${item.totalPeople} 人，導入率 ${item.totalPeople ? Math.round((item.aiUsers / item.totalPeople) * 100) : 0}%`}
+              right={centerRankingMode === 'rate' ? `${item.adoptionRate}%` : `${item.aiUsers} 人`}
+              sub={centerRankingMode === 'rate' ? `已使用 ${item.aiUsers} 人，共 ${item.totalPeople} 人` : `共 ${item.totalPeople} 人，導入率 ${item.adoptionRate}%`}
               tone="#2563eb"
             />
           ))}
