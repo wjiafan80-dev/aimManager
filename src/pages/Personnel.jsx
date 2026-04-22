@@ -266,11 +266,20 @@ export default function Personnel({ autoAction }) {
       if (!person) continue;
       const existing = normTools(person.tools);
       const already = existing.find(t => t.toolId === batchForm.toolId && !t.revoked);
-      if (already) continue;
-      const assignments = [
-        ...existing.filter(t => t.revoked || t.toolId !== batchForm.toolId),
-        { id: uid(), personId, toolId: batchForm.toolId, start: batchForm.start, end: batchForm.end, account: batchForm.account, revoked: false }
-      ];
+      let assignments;
+      if (already) {
+        // Update existing assignment's period instead of skipping
+        assignments = existing.map(t =>
+          t.toolId === batchForm.toolId && !t.revoked
+            ? { ...t, start: batchForm.start || t.start, end: batchForm.end }
+            : t
+        );
+      } else {
+        assignments = [
+          ...existing.filter(t => t.revoked || t.toolId !== batchForm.toolId),
+          { id: uid(), personId, toolId: batchForm.toolId, start: batchForm.start, end: batchForm.end, account: batchForm.account, revoked: false }
+        ];
+      }
       await savePersonFull({ person: { ...person, deptId: dept.id }, assignments });
     }
     setBatchModal(false);

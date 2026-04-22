@@ -152,14 +152,23 @@ export default function Tools({ autoAction }) {
   async function handleSaveLog() {
     if (!logForm.delta || !logForm.month) return;
 
+    const toolId = logForm.toolId || logModal.toolId;
+    const delta = parseInt(logForm.delta, 10);
+    const tool = tools.find(t => t.id === toolId);
+
     await saveLog({
       id: logModal.id || uid(),
       ts: today(),
       month: logForm.month,
-      toolId: logForm.toolId || logModal.toolId,
-      delta: parseInt(logForm.delta, 10),
+      toolId,
+      delta,
       notes: logForm.notes || '',
     });
+
+    if (tool) {
+      await saveTool({ ...tool, seats: (tool.seats || 0) + delta }, null);
+    }
+
     setLogModal(null);
   }
 
