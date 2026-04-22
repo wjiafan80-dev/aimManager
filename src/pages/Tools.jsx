@@ -14,7 +14,7 @@ import {
   toolUserCount,
 } from '../utils/calc.js';
 import { ntd, toolName, uid } from '../utils/format.js';
-import { today, ym } from '../utils/date.js';
+import { today, ym, fmtDate } from '../utils/date.js';
 
 Chart.register(CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend);
 
@@ -525,7 +525,7 @@ export default function Tools({ autoAction }) {
                       {item.delta > 0 ? '+' : ''}{item.delta}
                     </td>
                     <td style={{ color: 'var(--muted)' }}>{item.notes || '—'}</td>
-                    <td style={{ color: 'var(--muted)', fontSize: 12 }}>{item.ts || '—'}</td>
+                    <td style={{ color: 'var(--muted)', fontSize: 12 }}>{fmtDate(item.ts) || '—'}</td>
                     {isAdmin && (
                       <td>
                         <button className="btn btn-danger btn-sm" onClick={() => { if (confirm('確定要刪除這筆紀錄嗎？')) deleteLog(item.id); }}>刪除</button>

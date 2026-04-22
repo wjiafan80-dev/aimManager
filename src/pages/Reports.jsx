@@ -15,7 +15,7 @@ import {
   unassignedCostNTD,
 } from '../utils/calc.js';
 import { ntd, toolName } from '../utils/format.js';
-import { ym } from '../utils/date.js';
+import { ym, fmtMonth } from '../utils/date.js';
 
 const TABS = [
   { key: 'byDept', label: '依單位' },
@@ -256,7 +256,7 @@ function ByTool({ departments, tools, usd }) {
                   <td style={{ paddingLeft: 28, fontWeight: 600 }}>{person.name}</td>
                   <td style={{ color: 'var(--muted)', fontSize: 12 }}>{department.name}</td>
                   <td colSpan={2} style={{ fontSize: 12 }}>{entry?.account || '未填寫帳號'}</td>
-                  <td colSpan={2} style={{ fontSize: 12 }}>{entry?.start || '未填'} → {entry?.end || '無期限'}</td>
+                  <td colSpan={2} style={{ fontSize: 12 }}>{fmtMonth(entry?.start) || '未填'} → {fmtMonth(entry?.end) || '無期限'}</td>
                 </tr>
               ))}
             </FragmentRows>
@@ -366,7 +366,7 @@ function Disabled({ departments, tools, isAdmin, onDelete }) {
               ) : '未知工具'}
             </td>
             <td style={{ fontSize: 12 }}>{entry.account || '未填寫帳號'}</td>
-            <td style={{ fontSize: 12, color: '#ef4444' }}>{entry.end || '未填寫'}</td>
+            <td style={{ fontSize: 12, color: '#ef4444' }}>{fmtMonth(entry.end) || '未填寫'}</td>
             {isAdmin && (
               <td>
                 <button className="btn btn-danger btn-sm" onClick={() => onDelete(entry)}>
@@ -563,7 +563,7 @@ export default function Reports() {
               key={`${person.id}-${tool.id}-${entry.end}`}
               title={`${person.name} / ${toolName(tool)}`}
               meta={dept.name}
-              value={`${entry.end}${expired ? '，已逾期' : '，即將到期'}`}
+              value={`${fmtMonth(entry.end)}${expired ? '，已逾期' : '，即將到期'}`}
               tone={expired ? '#ef4444' : '#f59e0b'}
             />
           )) : <EmptyHint text="近 2 個月沒有到期授權。" />}

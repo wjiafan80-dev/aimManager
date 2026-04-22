@@ -4,7 +4,7 @@ import Modal from '../components/common/Modal.jsx';
 import SaveBtn from '../components/common/SaveBtn.jsx';
 import { normTools, isExpired, toolUserCount, toolMonthlyNTD, personMonthlyNTD } from '../utils/calc.js';
 import { ntd, toolName, uid } from '../utils/format.js';
-import { ym, ymAdd12, today } from '../utils/date.js';
+import { ym, ymAdd12, today, fmtMonth } from '../utils/date.js';
 
 // ── Person Modal ──────────────────────────────────────────────────────────────
 function PersonModal({ person, deptId, departments, tools, usd, onClose, onSave }) {
@@ -12,15 +12,15 @@ function PersonModal({ person, deptId, departments, tools, usd, onClose, onSave 
     id: t._assignId || uid(),
     personId: person?.id || '',
     toolId: t.toolId,
-    start: t.start || '',
-    end: t.end || '',
+    start: fmtMonth(t.start),
+    end: fmtMonth(t.end),
     account: t.account || '',
     revoked: t.revoked || false,
   }));
 
   const [form, setForm] = useState({
     name: person?.name || '',
-    empId: person?.empId || '',
+    empId: String(person?.empId ?? ''),
     deptId: deptId || '',
     status: person?.status || '在職',
   });

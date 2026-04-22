@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { normTools, isExpired } from '../utils/calc.js';
 import { toolName } from '../utils/format.js';
+import { fmtMonth } from '../utils/date.js';
 
 export default function Lookup() {
   const { data } = useApp();
@@ -101,9 +102,9 @@ export default function Lookup() {
                           </span>
                         </td>
                         <td style={{ fontSize: 13 }}>{entry.account || '—'}</td>
-                        <td style={{ fontSize: 13 }}>{entry.start || '—'}</td>
+                        <td style={{ fontSize: 13 }}>{fmtMonth(entry.start) || '—'}</td>
                         <td style={{ fontSize: 13, color: entry.end ? '#f59e0b' : 'var(--muted)' }}>
-                          {entry.end || '—'}
+                          {fmtMonth(entry.end) || '—'}
                         </td>
                       </tr>
                     ))}
