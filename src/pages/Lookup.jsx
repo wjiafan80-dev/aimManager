@@ -7,6 +7,7 @@ import { fmtMonth } from '../utils/date.js';
 export default function Lookup() {
   const { data } = useApp();
   const [toolId, setToolId] = useState('');
+  const [deptId, setDeptId] = useState('');
   const [search, setSearch] = useState('');
 
   if (!data) return null;
@@ -14,6 +15,7 @@ export default function Lookup() {
 
   const rows = [];
   departments.forEach(dept => {
+    if (deptId && dept.id !== deptId) return;
     (dept.people || []).forEach(p => {
       if (p.removed) return;
       normTools(p.tools).forEach(t => {
@@ -51,6 +53,18 @@ export default function Lookup() {
           <option value="">— 全部工具 —</option>
           {tools.map(t => (
             <option key={t.id} value={t.id}>{toolName(t)}</option>
+          ))}
+        </select>
+        <select
+          className="input"
+          aria-label="部門篩選"
+          value={deptId}
+          onChange={e => setDeptId(e.target.value)}
+          style={{ width: 260, maxWidth: '100%' }}
+        >
+          <option value="">— 全部部門 —</option>
+          {departments.map(dept => (
+            <option key={dept.id} value={dept.id}>{dept.name}</option>
           ))}
         </select>
         <input

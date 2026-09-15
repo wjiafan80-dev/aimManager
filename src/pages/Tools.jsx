@@ -16,6 +16,7 @@ import {
 } from '../utils/calc.js';
 import { ntd, toolName, uid } from '../utils/format.js';
 import { today, ym, fmtDate } from '../utils/date.js';
+import { presentTools } from '../utils/toolPresentation.js';
 
 Chart.register(CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend);
 
@@ -85,8 +86,9 @@ export default function Tools({ autoAction }) {
 
   if (!data) return null;
 
-  const { tools, departments, log } = data;
+  const { departments, log } = data;
   const usdRate = data.settings.usd_to_ntd;
+  const tools = presentTools(data.tools, usdRate);
 
   useEffect(() => {
     if (autoAction === 'new-tool') {
@@ -182,8 +184,8 @@ export default function Tools({ autoAction }) {
       let cumulative = 0;
       return {
         label: toolName(tool),
-        borderColor: tool.color,
-        backgroundColor: `${tool.color}22`,
+          borderColor: tool.displayColor,
+          backgroundColor: tool.displayTint,
         data: months.map(month => {
           filteredLog
             .filter(item => item.toolId === tool.id && item.month === month)
@@ -362,7 +364,7 @@ export default function Tools({ autoAction }) {
                   <tr key={tool.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: tool.color, flexShrink: 0 }} />
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: tool.displayColor, flexShrink: 0 }} />
                         <span style={{ fontWeight: 600 }}>{toolName(tool)}</span>
                       </div>
                     </td>
@@ -523,7 +525,7 @@ export default function Tools({ autoAction }) {
                 return (
                   <tr key={item.id}>
                     <td>{item.month}</td>
-                    <td>{tool ? <span className="tool-chip" style={{ background: `${tool.color}22`, color: tool.color }}>{toolName(tool)}</span> : '—'}</td>
+                    <td>{tool ? <span className="tool-chip" style={{ background: tool.displayTint, color: tool.displayColor }}>{toolName(tool)}</span> : '—'}</td>
                     <td style={{ color: item.delta > 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
                       {item.delta > 0 ? '+' : ''}{item.delta}
                     </td>
