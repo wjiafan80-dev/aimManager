@@ -1,4 +1,4 @@
-import { ym, ymPlus, isExpired } from './date.js';
+import { ym, ymPlus, isExpired, fmtMonth } from './date.js';
 import { toNTD } from './format.js';
 
 export { isExpired };
@@ -16,6 +16,8 @@ export function normTools(tools) {
     return {
       ...t,
       toolId:   toolRef,
+      start: fmtMonth(t.start),
+      end: fmtMonth(t.end),
       _assignId: t.toolId ? t.id : null,
       account:  t.account  || '',
       revoked:  t.revoked  || false,
