@@ -7,7 +7,7 @@ import { ntd, toolName, uid } from '../utils/format.js';
 import { ym, ymAdd12, today, fmtMonth } from '../utils/date.js';
 
 // ── Person Modal ──────────────────────────────────────────────────────────────
-function PersonModal({ person, deptId, departments, tools, usd, onClose, onSave }) {
+export function PersonModal({ person, deptId, departments, tools, usd, onClose, onSave }) {
   const initAssignments = normTools((person?.tools) || []).map(t => ({
     id: t._assignId || uid(),
     personId: person?.id || '',
@@ -42,14 +42,21 @@ function PersonModal({ person, deptId, departments, tools, usd, onClose, onSave 
       // Add
       setAssignments(prev => [...prev, {
         id: uid(), personId: person?.id || '', toolId,
-        start: ym(), end: '', account: '', revoked: false,
+        start: ym(), end: ymAdd12(ym()), account: '', revoked: false,
       }]);
     }
   }
 
-  function updateAssignment(toolId, field, value) {
+  function addAccount(toolId) {
+    setAssignments(prev => [...prev, {
+      id: uid(), personId: person?.id || '', toolId,
+      start: ym(), end: ymAdd12(ym()), account: '', revoked: false,
+    }]);
+  }
+
+  function updateAssignment(assignmentId, field, value) {
     setAssignments(prev => prev.map(a =>
-      a.toolId === toolId && !a.revoked ? { ...a, [field]: value } : a
+      a.id === assignmentId ? { ...a, [field]: value, ...(field === 'start' ? { end: value ? ymAdd12(value) : '' } : {}) } : a
     ));
   }
 
@@ -99,8 +106,8 @@ function PersonModal({ person, deptId, departments, tools, usd, onClose, onSave 
         <label className="label">AI 工具授權</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {tools.map(t => {
-            const a = assignments.find(x => x.toolId === t.id && !x.revoked);
-            const checked = !!a;
+            const accounts = assignments.filter(x => x.toolId === t.id && !x.revoked);
+            const checked = accounts.length > 0;
             return (
               <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -112,22 +119,31 @@ function PersonModal({ person, deptId, departments, tools, usd, onClose, onSave 
                     NT${Math.round(toolMonthlyNTD(t, usd)).toLocaleString()}/月
                   </span>
                 </div>
-                {checked && a && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
+                {accounts.map((a, index) => (
+                  <div key={a.id} style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12 }}>帳號 {index + 1}・1 席</span>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => {
+                        setAssignments(prev => prev.map(item => item.id === a.id ? { ...item, revoked: true, end: ym() } : item));
+                      }}>停用此帳號</button>
+                    </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                     <div>
                       <label className="label" style={{ fontSize: 11 }}>帳號</label>
-                      <input className="input" style={{ fontSize: 12, padding: '4px 8px' }} value={a.account} onChange={e => updateAssignment(t.id, 'account', e.target.value)} placeholder="登入帳號" />
+                      <input className="input" aria-label={`${toolName(t)} 帳號 ${index + 1}`} style={{ fontSize: 12, padding: '4px 8px' }} value={a.account} onChange={e => updateAssignment(a.id, 'account', e.target.value)} placeholder="登入帳號" />
                     </div>
                     <div>
                       <label className="label" style={{ fontSize: 11 }}>開始月份</label>
-                      <input className="input" type="month" style={{ fontSize: 12, padding: '4px 8px' }} value={a.start} onChange={e => updateAssignment(t.id, 'start', e.target.value)} />
+                      <input className="input" type="month" style={{ fontSize: 12, padding: '4px 8px' }} value={a.start} onChange={e => updateAssignment(a.id, 'start', e.target.value)} />
                     </div>
                     <div>
                       <label className="label" style={{ fontSize: 11 }}>到期月份</label>
-                      <input className="input" type="month" style={{ fontSize: 12, padding: '4px 8px' }} value={a.end} onChange={e => updateAssignment(t.id, 'end', e.target.value)} />
+                      <input className="input" type="month" style={{ fontSize: 12, padding: '4px 8px' }} value={a.end} onChange={e => updateAssignment(a.id, 'end', e.target.value)} />
                     </div>
                   </div>
-                )}
+                  </div>
+                ))}
+                {checked && <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => addAccount(t.id)}>+ 新增同工具帳號</button>}
               </div>
             );
           })}
@@ -155,7 +171,7 @@ export default function Personnel({ autoAction }) {
   const [deptForm, setDeptForm]       = useState({ name: '', center: '' });
   const [removedModal, setRemovedModal] = useState(false);
   const [batchModal, setBatchModal]   = useState(false);
-  const [batchForm, setBatchForm]     = useState({ toolId: '', start: ym(), end: '', account: '' });
+  const [batchForm, setBatchForm]     = useState({ toolId: '', start: ym(), end: ymAdd12(ym()), account: '' });
   const [batchSelected, setBatchSelected] = useState(new Set());
   const [batchSearch, setBatchSearch] = useState('');
   const [renameCenterModal, setRenameCenterModal] = useState(null);
@@ -539,7 +555,7 @@ export default function Personnel({ autoAction }) {
             </div>
             <div>
               <label className="label">開始月份</label>
-              <input className="input" type="month" value={batchForm.start} onChange={e => setBatchForm(f => ({ ...f, start: e.target.value }))} />
+              <input className="input" type="month" value={batchForm.start} onChange={e => setBatchForm(f => ({ ...f, start: e.target.value, end: e.target.value ? ymAdd12(e.target.value) : '' }))} />
             </div>
             <div>
               <label className="label">到期月份（可空）</label>
@@ -652,12 +668,13 @@ function PersonRow({ dept, person, tools, usd, isAdmin, onEdit, onDelete }) {
       </td>
       <td>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          {activeAssignments.map(t => {
+          {activeAssignments.map((t, index) => {
             const tool = tools.find(x => x.id === t.toolId);
             if (!tool) return null;
             return (
-              <span key={t.toolId} className="tool-chip" style={{ background: tool.color + '22', color: tool.color }}>
+              <span key={t._assignId || `${t.toolId}-${index}`} className="tool-chip" title={t.account || ''} style={{ background: tool.color + '22', color: tool.color }}>
                 {toolName(tool)}
+                {t.account && <span style={{ fontSize: 11 }}> · {t.account}</span>}
                 {t.end && <span style={{ opacity: 0.7, fontSize: 10 }}> {t.end}</span>}
               </span>
             );

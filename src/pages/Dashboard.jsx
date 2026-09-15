@@ -8,6 +8,8 @@ import {
   seatCostNTD,
   toolMonthlyNTD,
   toolUserCount,
+  toolSeatCount,
+  distinctTools,
   totalIssuedSeats,
   totalPurchasedSeats,
   unassignedCostNTD,
@@ -17,11 +19,13 @@ import { ntd, toolName } from '../utils/format.js';
 function buildTopCostTools(tools, departments, usd) {
   return [...tools]
     .map((tool) => {
-      const usedSeats = toolUserCount(tool.id, departments);
+      const usedSeats = toolSeatCount(tool.id, departments);
+      const users = toolUserCount(tool.id, departments);
       const chargedSeats = tool.seats || usedSeats;
       return {
         ...tool,
         usedSeats,
+        users,
         chargedSeats,
         monthlyUnitCost: toolMonthlyNTD(tool, usd),
         monthlyTotalCost: toolMonthlyNTD(tool, usd) * chargedSeats,
@@ -34,11 +38,13 @@ function buildTopCostTools(tools, departments, usd) {
 function buildTopUnitPriceTools(tools, departments, usd) {
   return [...tools]
     .map((tool) => {
-      const usedSeats = toolUserCount(tool.id, departments);
+      const usedSeats = toolSeatCount(tool.id, departments);
+      const users = toolUserCount(tool.id, departments);
       const chargedSeats = tool.seats || usedSeats;
       return {
         ...tool,
         usedSeats,
+        users,
         chargedSeats,
         monthlyUnitCost: toolMonthlyNTD(tool, usd),
         monthlyTotalCost: toolMonthlyNTD(tool, usd) * chargedSeats,
@@ -51,11 +57,13 @@ function buildTopUnitPriceTools(tools, departments, usd) {
 function buildTopPurchasedTools(tools, departments) {
   return [...tools]
     .map((tool) => {
-      const usedSeats = toolUserCount(tool.id, departments);
+      const usedSeats = toolSeatCount(tool.id, departments);
+      const users = toolUserCount(tool.id, departments);
       const purchasedSeats = tool.seats || usedSeats;
       return {
         ...tool,
         usedSeats,
+        users,
         purchasedSeats,
       };
     })
@@ -66,9 +74,10 @@ function buildTopPurchasedTools(tools, departments) {
 function buildIdleTools(tools, departments) {
   return [...tools]
     .map((tool) => {
-      const usedSeats = toolUserCount(tool.id, departments);
+      const usedSeats = toolSeatCount(tool.id, departments);
+      const users = toolUserCount(tool.id, departments);
       const idleSeats = Math.max(0, (tool.seats || 0) - usedSeats);
-      return { ...tool, usedSeats, idleSeats };
+      return { ...tool, usedSeats, users, idleSeats };
     })
     .filter((tool) => tool.idleSeats > 0)
     .sort((left, right) => right.idleSeats - left.idleSeats)
@@ -81,7 +90,7 @@ function buildMultiToolPeople(departments) {
       (department.people || [])
         .filter((person) => !person.removed)
         .map((person) => {
-          const activeTools = normTools(person.tools).filter((tool) => !tool.revoked);
+          const activeTools = distinctTools(normTools(person.tools).filter((tool) => !tool.revoked));
           return { department, person, activeTools };
         }),
     )
@@ -312,8 +321,8 @@ export default function Dashboard({ onNav }) {
               left={toolName(tool)}
               right={costRankingMode === 'unit' ? `${ntd(tool.monthlyUnitCost)} / 席` : `${ntd(tool.monthlyTotalCost)} / 月`}
               sub={costRankingMode === 'unit'
-                ? `目前使用 ${tool.usedSeats} 人，計費 ${tool.chargedSeats} 席`
-                : `目前使用 ${tool.usedSeats} 人，計費 ${tool.chargedSeats} 席，單價 ${ntd(tool.monthlyUnitCost)} / 席`}
+                ? `目前使用 ${tool.users} 人、已發 ${tool.usedSeats} 席，計費 ${tool.chargedSeats} 席`
+                : `目前使用 ${tool.users} 人、已發 ${tool.usedSeats} 席，計費 ${tool.chargedSeats} 席，單價 ${ntd(tool.monthlyUnitCost)} / 席`}
             />
           ))}
         </ListCard>
@@ -331,7 +340,7 @@ export default function Dashboard({ onNav }) {
               key={tool.id}
               left={toolName(tool)}
               right={`${tool.purchasedSeats} 席`}
-              sub={`目前使用 ${tool.usedSeats} 人${tool.seats ? `，已購買 ${tool.seats} 席` : '，依實際使用人數計費'}`}
+              sub={`目前使用 ${tool.users} 人、已發 ${tool.usedSeats} 席${tool.seats ? `，已購買 ${tool.seats} 席` : '，依實際使用人數計費'}`}
               tone="#2563eb"
             />
           ))}
@@ -348,7 +357,7 @@ export default function Dashboard({ onNav }) {
               key={tool.id}
               left={toolName(tool)}
               right={`閒置 ${tool.idleSeats} 席`}
-              sub={`已購買 ${tool.seats} 席，目前使用 ${tool.usedSeats} 人`}
+              sub={`已購買 ${tool.seats} 席，目前使用 ${tool.users} 人、已發 ${tool.usedSeats} 席`}
               tone="#f59e0b"
             />
           )) : (

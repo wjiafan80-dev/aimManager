@@ -12,6 +12,8 @@ import {
   toolAnnualNTD,
   toolMonthlyNTD,
   toolUserCount,
+  toolSeatCount,
+  distinctTools,
   unassignedCostNTD,
 } from '../utils/calc.js';
 import { ntd, toolName } from '../utils/format.js';
@@ -62,7 +64,7 @@ function buildHighCostTools(tools, departments, usd) {
   return [...tools]
     .map((tool) => {
       const users = toolUserCount(tool.id, departments);
-      const chargedSeats = tool.seats || users;
+      const chargedSeats = tool.seats || toolSeatCount(tool.id, departments);
       return {
         ...tool,
         users,
@@ -78,7 +80,7 @@ function buildIdleSeatRows(tools, departments, usd) {
   return tools
     .map((tool) => {
       const users = toolUserCount(tool.id, departments);
-      const idleSeats = Math.max(0, (tool.seats || 0) - users);
+      const idleSeats = Math.max(0, (tool.seats || 0) - toolSeatCount(tool.id, departments));
       return {
         ...tool,
         users,
@@ -198,8 +200,8 @@ function ByTool({ departments, tools, usd }) {
   const rows = sorted(tools, (tool, col) => ({
     name: toolName(tool),
     users: toolUserCount(tool.id, departments),
-    monthly: toolMonthlyNTD(tool, usd) * (tool.seats || toolUserCount(tool.id, departments)),
-    annual: toolAnnualNTD(tool, usd) * (tool.seats || toolUserCount(tool.id, departments)),
+    monthly: toolMonthlyNTD(tool, usd) * (tool.seats || toolSeatCount(tool.id, departments)),
+    annual: toolAnnualNTD(tool, usd) * (tool.seats || toolSeatCount(tool.id, departments)),
   }[col]));
 
   return (
@@ -207,7 +209,7 @@ function ByTool({ departments, tools, usd }) {
       <thead>
         <tr>
           <SortTh label="工具" col="name" sort={sort} onSort={onSort} />
-          <SortTh label="使用 / 採購" col="users" sort={sort} onSort={onSort} />
+          <SortTh label="人數 / 已發 / 採購" col="users" sort={sort} onSort={onSort} />
           <SortTh label="單月費用" col="monthly" sort={sort} onSort={onSort} />
           <SortTh label="月成本" col="monthly" sort={sort} onSort={onSort} />
           <SortTh label="年成本" col="annual" sort={sort} onSort={onSort} />
@@ -217,7 +219,7 @@ function ByTool({ departments, tools, usd }) {
       <tbody>
         {rows.map((tool) => {
           const users = toolUserCount(tool.id, departments);
-          const chargedSeats = tool.seats || users;
+          const chargedSeats = tool.seats || toolSeatCount(tool.id, departments);
           const monthlyUnit = toolMonthlyNTD(tool, usd);
           const annualUnit = toolAnnualNTD(tool, usd);
           const assignees = departments.flatMap((department) =>
@@ -239,7 +241,7 @@ function ByTool({ departments, tools, usd }) {
                   </span>
                 </td>
                 <td>
-                  <span style={{ color: users > (tool.seats || Number.POSITIVE_INFINITY) ? '#ef4444' : undefined }}>{users}</span>
+                  <span style={{ color: toolSeatCount(tool.id, departments) > (tool.seats || Number.POSITIVE_INFINITY) ? '#ef4444' : undefined }}>{users} 人 / {toolSeatCount(tool.id, departments)} 席</span>
                   {tool.seats > 0 && <span style={{ color: 'var(--muted)' }}> / {tool.seats}</span>}
                 </td>
                 <td>{ntd(monthlyUnit)}</td>
@@ -283,7 +285,7 @@ function FullList({ departments, tools, usd }) {
   const orderedRows = sorted(rows, (row, col) => ({
     name: row.person.name,
     dept: row.department.name,
-    toolCount: normTools(row.person.tools).filter((tool) => !tool.revoked && !isExpired(tool)).length,
+    toolCount: distinctTools(normTools(row.person.tools).filter((tool) => !tool.revoked && !isExpired(tool))).length,
     monthly: row.monthly,
     annual: row.annual,
   }[col]));
@@ -394,7 +396,7 @@ function MultiTool({ departments, tools, usd }) {
     (department.people || [])
       .filter((person) => !person.removed)
       .map((person) => {
-        const activeTools = normTools(person.tools).filter((tool) => !tool.revoked && !isExpired(tool));
+        const activeTools = distinctTools(normTools(person.tools).filter((tool) => !tool.revoked && !isExpired(tool)));
         return { department, person, activeTools };
       })
       .filter(({ activeTools }) => activeTools.length >= 2)
@@ -509,7 +511,7 @@ export default function Reports() {
 
     const toolRows = tools.map((tool) => {
       const users = toolUserCount(tool.id, departments);
-      const chargedSeats = tool.seats || users;
+      const chargedSeats = tool.seats || toolSeatCount(tool.id, departments);
       return [
         toolName(tool),
         tool.currency,

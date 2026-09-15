@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { api } from '../api/gas.js';
 import { demoData } from '../data/demoData.js';
 
@@ -12,10 +12,12 @@ function cloneDemoData() {
 
 export function AppProvider({ children }) {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [token, setToken] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const authGeneration = useRef(0);
   const [toasts, setToasts] = useState([]);
   const [dataSource, setDataSource] = useState('live');
 
@@ -26,6 +28,7 @@ export function AppProvider({ children }) {
   }, []);
 
   const loadDemoData = useCallback((silent = false) => {
+    if (!isAdmin) return;
     setData(cloneDemoData());
     setDataSource('demo');
     setLoading(false);
@@ -33,49 +36,74 @@ export function AppProvider({ children }) {
     if (!silent) {
       toast('已切換為展示資料，可直接進行主管 demo。', 'ok');
     }
-  }, [toast]);
+  }, [toast, isAdmin]);
 
-  const loadData = useCallback(async ({ silentFallback = false } = {}) => {
+  const loadData = useCallback(async ({ credential = token } = {}) => {
+    if (!credential) return;
+    const generation = authGeneration.current;
     setLoading(true);
 
     try {
-      const result = await api.getData();
+      const result = await api.getData(credential);
+      if (generation !== authGeneration.current) return;
       if (result.error) throw new Error(result.error);
 
       setData(result);
       setDataSource('live');
+      setToken(credential);
+      setIsAdmin(true);
+      setAuthError('');
     } catch (error) {
-      loadDemoData(silentFallback);
-      toast(`正式資料載入失敗，已改用展示資料：${error.message}`, 'err');
+      if (generation !== authGeneration.current) return;
+      setData(null);
+      setToken(null);
+      setIsAdmin(false);
+      setAuthError(error.message || '無法驗證管理員身分，請重新登入。');
     } finally {
-      setLoading(false);
+      if (generation === authGeneration.current) setLoading(false);
     }
-  }, [loadDemoData, toast]);
-
-  useEffect(() => {
-    loadData({ silentFallback: true });
-  }, [loadData]);
+  }, [token]);
 
   function onGoogleLogin(credentialResponse) {
-    setToken(credentialResponse.credential);
-    setIsAdmin(true);
-    toast('已登入管理員模式。', 'ok');
+    authGeneration.current += 1;
+    setData(null);
+    setIsAdmin(false);
+    setToken(null);
+    setAuthError('');
+    return loadData({ credential: credentialResponse.credential });
   }
 
   function logout() {
+    authGeneration.current += 1;
+    setData(null);
     setToken(null);
     setIsAdmin(false);
+    setLoading(false);
+    setAuthError('');
     toast('已登出管理員模式。');
   }
+
+  useEffect(() => {
+    if (!token) return;
+    const timer = setTimeout(() => {
+      authGeneration.current += 1;
+      setData(null);
+      setToken(null);
+      setIsAdmin(false);
+      setLoading(false);
+      setAuthError('登入已逾時，請重新登入。');
+    }, 55 * 60 * 1000);
+    return () => clearTimeout(timer);
+  }, [token]);
 
   async function call(fn, successMsg) {
     setSaving(true);
 
     try {
+      if (!isAdmin || !token) throw new Error('請先登入管理員帳號。');
       const result = await fn();
       if (result && result.error) {
-        toast(result.error, 'err');
-        return null;
+        throw new Error(result.error);
       }
 
       if (successMsg) {
@@ -86,7 +114,7 @@ export function AppProvider({ children }) {
       return result;
     } catch (error) {
       toast(error.message, 'err');
-      return null;
+      throw error;
     } finally {
       setSaving(false);
     }
@@ -124,6 +152,7 @@ export function AppProvider({ children }) {
     saving,
     token,
     isAdmin,
+    authError,
     toasts,
     dataSource,
     loadData,

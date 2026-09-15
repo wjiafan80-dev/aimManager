@@ -12,6 +12,7 @@ import {
   toolMonthlyNTD,
   toolAnnualNTD,
   toolUserCount,
+  toolSeatCount,
 } from '../utils/calc.js';
 import { ntd, toolName, uid } from '../utils/format.js';
 import { today, ym, fmtDate } from '../utils/date.js';
@@ -199,11 +200,11 @@ export default function Tools({ autoAction }) {
 
   const formPricing = getFormPricing(form);
   const annualListTotal = tools.reduce((sum, tool) => {
-    const basis = tool.seats || toolUserCount(tool.id, departments);
+    const basis = tool.seats || toolSeatCount(tool.id, departments);
     return sum + toolAnnualListPriceNTD(tool, usdRate) * basis;
   }, 0);
   const annualDiscountedTotal = tools.reduce((sum, tool) => {
-    const basis = tool.seats || toolUserCount(tool.id, departments);
+    const basis = tool.seats || toolSeatCount(tool.id, departments);
     return sum + toolAnnualNTD(tool, usdRate) * basis;
   }, 0);
   const annualSavings = Math.max(0, annualListTotal - annualDiscountedTotal);
@@ -350,10 +351,11 @@ export default function Tools({ autoAction }) {
             <tbody>
               {tools.map(tool => {
                 const users = toolUserCount(tool.id, departments);
+                const issued = toolSeatCount(tool.id, departments);
                 const monthlyCost = toolMonthlyNTD(tool, usdRate);
                 const annualCost = toolAnnualNTD(tool, usdRate);
-                const basis = tool.seats || users;
-                const idleSeats = tool.seats ? Math.max(0, tool.seats - users) : 0;
+                const basis = tool.seats || issued;
+                const idleSeats = tool.seats ? Math.max(0, tool.seats - issued) : 0;
                 const pricing = normalizeToolPricing(tool);
 
                 return (
@@ -373,13 +375,14 @@ export default function Tools({ autoAction }) {
                     <td style={{ fontWeight: 700 }}>{ntd(monthlyCost * basis)}</td>
                     <td style={{ fontWeight: 700 }}>{ntd(annualCost * basis)}</td>
                     <td>
-                      <span style={{ color: users > (tool.seats || Infinity) ? '#ef4444' : undefined }}>{users}</span>
+                      <span style={{ color: issued > (tool.seats || Infinity) ? '#ef4444' : undefined }}>{issued}</span>
                       {tool.seats > 0 && (
                         <span style={{ color: 'var(--muted)' }}>
                           {' '} / {tool.seats}
                           {idleSeats > 0 && <span style={{ color: '#f59e0b', marginLeft: 4 }}>(閒置 {idleSeats})</span>}
                         </span>
                       )}
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>使用 {users} 人</div>
                     </td>
                     {isAdmin && (
                       <td>

@@ -23,7 +23,7 @@ export default function Lookup() {
         const tool = tools.find(x => x.id === t.toolId);
         if (!tool) return;
         const q = search.toLowerCase();
-        if (q && !p.name.toLowerCase().includes(q) && !(p.empId || '').includes(q)) return;
+        if (q && !p.name.toLowerCase().includes(q) && !String(p.empId || '').includes(q) && !t.account.toLowerCase().includes(q)) return;
         rows.push({ dept, person: p, tool, entry: t });
       });
     });
@@ -55,7 +55,7 @@ export default function Lookup() {
         </select>
         <input
           className="input"
-          placeholder="搜尋姓名或員工編號…"
+          placeholder="搜尋姓名、員工編號或帳號…"
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ width: 200 }}

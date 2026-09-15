@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
 import { useApp } from './context/AppContext.jsx';
 import Sidebar from './components/Layout/Sidebar.jsx';
 import Topbar from './components/Layout/Topbar.jsx';
@@ -11,7 +12,7 @@ import Reports from './pages/Reports.jsx';
 import Settings from './pages/Settings.jsx';
 
 export default function App() {
-  const { data, loading, saving, dataSource, loadDemoData, loadData } = useApp();
+  const { data, loading, saving, dataSource, loadDemoData, loadData, isAdmin, authError, onGoogleLogin } = useApp();
   const [page, setPage] = useState('dashboard');
   const [sideCollapsed, setSideCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -23,6 +24,19 @@ export default function App() {
     setMobileOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  if (!isAdmin) return (
+    <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24, background: 'var(--bg)' }}>
+      <section className="card" style={{ width: '100%', maxWidth: 420, padding: 32, textAlign: 'center' }}>
+        <h1 style={{ fontSize: 24 }}>AI 工具管理</h1>
+        <p style={{ color: 'var(--muted)', lineHeight: 1.8 }}>此網站僅供管理員使用。<br />請使用已授權的 Google 帳號登入。</p>
+        {loading ? <p role="status">正在驗證身分…</p> : <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <GoogleLogin onSuccess={onGoogleLogin} onError={() => {}} text="signin_with" locale="zh-TW" />
+        </div>}
+        {authError && <p role="alert" style={{ color: '#b91c1c' }}>{authError}</p>}
+      </section>
+    </main>
+  );
 
   return (
     <div className="app-layout">

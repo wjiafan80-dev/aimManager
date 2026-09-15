@@ -138,6 +138,18 @@ export function personMonthlyNTD(person, tools, usdRate) {
   }, 0);
 }
 
+// 人数按人員去重；已發授權、費用及閒置席次按帳號列計算。
+export function toolSeatCount(toolId, departments) {
+  return departments.reduce((sum, dept) => sum + (dept.people || [])
+    .filter(person => !person.removed)
+    .reduce((count, person) => count + normTools(person.tools)
+      .filter(entry => entry.toolId === toolId && !entry.revoked && !isExpired(entry)).length, 0), 0);
+}
+
+export function distinctTools(assignments) {
+  return [...new Map(assignments.map(entry => [entry.toolId, entry])).values()];
+}
+
 export function personAnnualNTD(person, tools, usdRate) {
   return normTools(person.tools).reduce((s, t) => {
     if (t.revoked || isExpired(t)) return s;
@@ -148,7 +160,7 @@ export function personAnnualNTD(person, tools, usdRate) {
 
 export function seatCostNTD(type, tools, departments, usdRate) {
   return tools.reduce((s, t) => {
-    const basis = t.seats || toolUserCount(t.id, departments);
+    const basis = t.seats || toolSeatCount(t.id, departments);
     return s + (type === 'monthly' ? toolMonthlyNTD(t, usdRate) : toolAnnualNTD(t, usdRate)) * basis;
   }, 0);
 }
@@ -156,7 +168,7 @@ export function seatCostNTD(type, tools, departments, usdRate) {
 export function unassignedCostNTD(type, tools, departments, usdRate) {
   return tools.reduce((s, t) => {
     if (!t.seats) return s;
-    const u = Math.max(0, t.seats - toolUserCount(t.id, departments));
+    const u = Math.max(0, t.seats - toolSeatCount(t.id, departments));
     return s + (type === 'monthly' ? toolMonthlyNTD(t, usdRate) : toolAnnualNTD(t, usdRate)) * u;
   }, 0);
 }
@@ -199,7 +211,7 @@ export function aiUsersCount(departments) {
 }
 
 export function totalIssuedSeats(tools, departments) {
-  return tools.reduce((s, t) => s + toolUserCount(t.id, departments), 0);
+  return tools.reduce((s, t) => s + toolSeatCount(t.id, departments), 0);
 }
 
 export function totalPurchasedSeats(tools) {
