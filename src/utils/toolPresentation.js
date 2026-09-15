@@ -6,7 +6,8 @@ const BRAND_HUES = { chatgpt: 155, gemini: 220, claude: 25, perplexity: 185, dre
 export function presentTools(tools, usdRate) {
   const brands = new Map();
   for (const tool of tools) {
-    const brand = tool.name.trim().toLowerCase();
+    const name = tool.name.trim().toLowerCase();
+    const brand = Object.keys(BRAND_HUES).find(key => name === key || name.startsWith(key + ' ')) || name;
     if (!brands.has(brand)) brands.set(brand, []);
     brands.get(brand).push(tool);
   }
