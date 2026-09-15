@@ -318,7 +318,7 @@ export default function Dashboard({ onNav }) {
           {visibleCostRanking.map((tool) => (
             <ListRow
               key={`${costRankingMode}-${tool.id}`}
-              left={toolName(tool)}
+              left={<ToolLabel tool={tool} />}
               right={costRankingMode === 'unit' ? `${ntd(tool.monthlyUnitCost)} / 席` : `${ntd(tool.monthlyTotalCost)} / 月`}
               sub={costRankingMode === 'unit'
                 ? `目前使用 ${tool.users} 人、已發 ${tool.usedSeats} 席，計費 ${tool.chargedSeats} 席`
@@ -338,7 +338,7 @@ export default function Dashboard({ onNav }) {
           {topPurchasedTools.map((tool) => (
             <ListRow
               key={tool.id}
-              left={toolName(tool)}
+              left={<ToolLabel tool={tool} />}
               right={`${tool.purchasedSeats} 席`}
               sub={`目前使用 ${tool.users} 人、已發 ${tool.usedSeats} 席${tool.seats ? `，已購買 ${tool.seats} 席` : '，依實際使用人數計費'}`}
               tone="#2563eb"
@@ -355,7 +355,7 @@ export default function Dashboard({ onNav }) {
           {idleTools.length > 0 ? idleTools.map((tool) => (
             <ListRow
               key={tool.id}
-              left={toolName(tool)}
+              left={<ToolLabel tool={tool} />}
               right={`閒置 ${tool.idleSeats} 席`}
               sub={`已購買 ${tool.seats} 席，目前使用 ${tool.users} 人、已發 ${tool.usedSeats} 席`}
               tone="#f59e0b"
@@ -461,6 +461,10 @@ function ListCard({ title, subtitle, actionLabel, onAction, children, extraActio
       <div style={{ padding: '8px 16px 14px', display: 'grid', gap: 10 }}>{children}</div>
     </div>
   );
+}
+
+function ToolLabel({ tool }) {
+  return <span className="tool-chip" style={{ color: tool.color, background: `${tool.color}22` }}>{toolName(tool)}</span>;
 }
 
 function ListRow({ left, right, sub, tone = 'var(--text)' }) {
