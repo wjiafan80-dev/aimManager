@@ -11,14 +11,13 @@ export function presentTools(tools, usdRate) {
     if (!brands.has(brand)) brands.set(brand, []);
     brands.get(brand).push(tool);
   }
-  return [...brands.entries()].flatMap(([brand, entries]) => {
-    const hue = BRAND_HUES[brand] ?? [...brand].reduce((n, c) => (n * 31 + c.charCodeAt(0)) % 360, 0);
+  return [...brands.values()].flatMap(entries => {
     return [...entries]
       .sort((a, b) => toolMonthlyNTD(a, usdRate) - toolMonthlyNTD(b, usdRate) || (a.plan || '').localeCompare(b.plan || ''))
-      .map((tool, index) => ({
+      .map(tool => ({
         ...tool,
-        displayColor: `hsl(${hue} 65% ${entries.length === 1 ? 38 : 46 - index * 18 / (entries.length - 1)}%)`,
-        displayTint: `hsl(${hue} 65% 94%)`,
+        displayColor: tool.color,
+        displayTint: `${tool.color}22`,
       }));
   });
 }

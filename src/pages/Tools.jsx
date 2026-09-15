@@ -652,8 +652,9 @@ export default function Tools({ autoAction }) {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                 {COLORS.map(color => (
                   <button
-                    key={color}
-                    type="button"
+                     key={color}
+                     type="button"
+                     aria-label={`顏色 ${color}`}
                     onClick={() => setForm(current => ({ ...current, color }))}
                     style={{
                       width: 24,
